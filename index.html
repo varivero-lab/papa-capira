@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Precio de la papa capira · Proceso de decisión de Markov</title>
+<style>
+:root{
+  --bg:#eef0e8; --paper:#fbfcf8; --ink:#1d2b24; --muted:#56655c; --line:#d4dacd; --soft:#e3e8dc;
+  --accent:#2f5d47; --accent-ink:#ffffff; --parch:#e9dcbc;
+  --b:#b23a48; --m:#b8861f; --a:#2f7d5b; --v:#5b4636;
+  --ok:#2f7d5b; --bad:#b23a48; --grid:#dfe4d8;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141a16; --paper:#1c241f; --ink:#e6ece4; --muted:#a3b0a6; --line:#2f3b33; --soft:#25302a;
+    --accent:#8cc5a5; --accent-ink:#10251a; --parch:#3a3424;
+    --b:#e1707c; --m:#e2b551; --a:#62c191; --v:#c2a68e; --ok:#62c191; --bad:#e1707c; --grid:#2a352e;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141a16; --paper:#1c241f; --ink:#e6ece4; --muted:#a3b0a6; --line:#2f3b33; --soft:#25302a;
+  --accent:#8cc5a5; --accent-ink:#10251a; --parch:#3a3424;
+  --b:#e1707c; --m:#e2b551; --a:#62c191; --v:#c2a68e; --ok:#62c191; --bad:#e1707c; --grid:#2a352e;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 48px}
+header.top{padding:36px 0 20px;display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:end}
+header.top h1{font-family:var(--serif);font-weight:600;font-size:clamp(2rem,4.6vw,3.3rem);line-height:1.05;margin:0 0 10px;letter-spacing:-.01em}
+header.top p{margin:0;color:var(--muted);max-width:62ch}
+.facts{background:var(--parch);border-radius:4px 22px 4px 22px;padding:16px 20px;font-size:.92rem}
+.facts dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
+.facts dt{font-weight:600}
+.facts dd{margin:0}
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);margin:0 -20px 24px;padding:8px 20px;display:flex;gap:6px;overflow-x:auto}
+nav.toc a{color:var(--ink);text-decoration:none;padding:5px 11px;border-radius:999px;font-size:.88rem;white-space:nowrap}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--soft)}
+section.block{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:22px 22px 20px;margin-bottom:22px}
+section.block>h2{font-family:var(--serif);font-weight:600;font-size:1.55rem;margin:0 0 4px}
+section.block>.lead{margin:0 0 16px;color:var(--muted);max-width:75ch}
+h3{font-size:1.02rem;margin:18px 0 8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid2>*{min-width:0}
+@media (max-width:860px){header.top{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+.scroll{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:600;color:var(--muted);border-bottom:2px solid var(--line)}
+tr.hl td{background:var(--soft);font-weight:600}
+.dot{display:inline-block;width:.75em;height:.75em;border-radius:50%;margin-right:6px;vertical-align:-.05em}
+.dB{background:var(--b)}.dM{background:var(--m)}.dA{background:var(--a)}.dV{background:var(--v)}
+input[type=number],select,input[type=text]{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+input[type=number]{width:5.5em;text-align:right}
+.mat input{width:5.2em}
+input.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--paper))}
+td.sum-ok{color:var(--ok);font-weight:600}
+td.sum-bad{color:var(--bad);font-weight:700}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-size:.93rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:5px;padding:7px 13px;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:10px 0}
+.row label{display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:.93rem;max-width:100%}
+select{max-width:100%}
+.status{padding:9px 12px;border-radius:5px;font-size:.92rem;margin-top:10px}
+.status.ok{background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.status.err{background:color-mix(in srgb,var(--bad) 15%,transparent)}
+.explica{border-left:3px solid var(--m);padding:6px 0 6px 12px;margin:12px 0 0;color:var(--ink);font-size:.94rem;max-width:80ch}
+.explica b{font-weight:650}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem;color:var(--muted);margin:6px 0}
+canvas{display:block;width:100%;max-width:100%}
+.diagram-box{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.diagram-box{grid-template-columns:1fr}}
+#diagram svg{width:100%;height:auto;display:block}
+.svg-label{font:600 13px var(--sans);fill:var(--ink)}
+.svg-node{font:700 15px var(--sans);fill:#fff}
+.svg-sub{font:500 11px var(--sans);fill:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chips button{background:var(--soft);color:var(--ink);border-color:var(--line);font-size:.86rem;padding:5px 10px;border-radius:999px}
+.qbtns{display:grid;gap:8px}
+.qbtns button{text-align:left;background:var(--paper);color:var(--ink);border-color:var(--line);padding:10px 13px}
+.qbtns button:hover{border-color:var(--accent)}
+.notice{border:1px dashed var(--m);background:color-mix(in srgb,var(--m) 9%,transparent);border-radius:6px;padding:10px 14px;font-size:.92rem;margin:0 0 22px}
+.st{display:inline-block;min-width:1.9em;text-align:center;border-radius:4px;padding:1px 6px;font-weight:700;color:#fff;font-size:.85rem}
+.stB{background:var(--b)}.stM{background:var(--m)}.stA{background:var(--a)}
+.freq input{width:4.2em}
+.drop{display:block;border:2px dashed var(--line);border-radius:8px;padding:22px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.drop input{display:none}
+.drop b{display:block;font-size:1.05rem;margin-bottom:4px}
+.filelog{list-style:none;margin:10px 0 0;padding:0;font-size:.9rem;max-height:260px;overflow-y:auto}
+.filelog li{padding:6px 0;border-bottom:1px solid var(--line)}
+.filelog .ok{color:var(--ok);font-weight:600}.filelog .err{color:var(--bad);font-weight:600}.filelog .upd{color:var(--m);font-weight:600}
+.badge{display:inline-block;font-family:var(--sans);font-weight:500;vertical-align:middle;font-size:.78rem;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--muted);margin-left:6px}
+#r0,#r1,#r2{width:7em}
+.answer{background:var(--soft);border-radius:6px;padding:14px 16px;min-height:120px}
+.answer h4{margin:0 0 4px;font-size:1rem}
+.answer .big{font-family:var(--serif);font-size:2rem;font-weight:600;margin:2px 0 6px}
+.answer .calc{font-size:.88rem;color:var(--muted);margin-top:8px;overflow-x:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.kpi{border:1px solid var(--line);border-radius:6px;padding:9px 12px}
+.kpi span{display:block;font-size:.82rem;color:var(--muted)}
+.kpi strong{font-family:var(--serif);font-size:1.35rem;font-weight:600}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.84rem;font-weight:600}
+.pill.sell{background:color-mix(in srgb,var(--a) 20%,transparent);color:var(--a)}
+.pill.wait{background:color-mix(in srgb,var(--m) 22%,transparent);color:var(--m)}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--accent);font-size:.93rem}
+.muted{color:var(--muted)}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding-top:10px}
+@media (max-width:520px){section.block{padding:16px 14px}.mat input{width:4.4em}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>Precio de la papa capira</h1>
+    <p>Central Mayorista de Antioquia (Medellín). Simulador de un proceso de decisión de Markov: cada semana el precio cae en un nivel (Bajo, Medio o Alto) y el productor decide si guarda la carga o la vende. Cambia los datos y todo se recalcula al instante.</p>
+  </div>
+  <div class="facts">
+    <dl>
+      <dt>Fuente</dt><dd id="factFuente">DANE – SIPSA, enero–septiembre de 2026 (20 semanas)</dd>
+      <dt>Estados</dt><dd id="factEstados"><span class="dot dB"></span>Bajo &lt; 2.244,80 · <span class="dot dM"></span>Medio ±5 % de 2.362,95 · <span class="dot dA"></span>Alto &gt; 2.481,10</dd>
+      <dt>Acciones</dt><dd>A0 Esperar (−22 $/kg por semana) · A1 Vender (cobra y termina)</dd>
+      <dt>Unidades</dt><dd>pesos colombianos por kilogramo ($/kg)</dd>
+    </dl>
+  </div>
+</header>
+
+<p class="notice" id="notice"><b>Resultados ilustrativos.</b> Las 20 semanas no son todas consecutivas en el calendario, el par de cierre S20 → S1 es un supuesto para completar 20 transiciones y la papa capira es un producto perecedero: el costo real de almacenar (merma y riesgo) puede ser mayor que el supuesto de 22 $/kg por semana.</p>
+
+<nav class="toc" aria-label="Secciones">
+  <a href="#cargar">Cargar boletines</a><a href="#serie">Serie</a><a href="#datos">Datos</a><a href="#diagrama">Diagrama</a><a href="#prediccion">Predicción</a><a href="#montecarlo">Monte Carlo</a><a href="#indicadores">Indicadores</a><a href="#valor">Iteración de valor</a><a href="#sensibilidad">Sensibilidad</a><a href="#preguntas">Preguntas</a>
+</nav>
+
+<!-- CARGAR -->
+<section class="block" id="cargar">
+  <h2>Cargar boletines SIPSA <span class="badge" id="storeBadge">guardado: iniciando…</span></h2>
+  <p class="lead">Sube los anexos semanales del SIPSA en Excel (.xlsx). La página busca la fila de <b>papa capira</b> en <b>Medellín, Central Mayorista de Antioquia</b>, lee la semana del título del boletín y la agrega a la serie. Con cada carga recalcula el promedio, los límites de los estados, la tabla de frecuencias, la matriz P, las recompensas y la política óptima, y guarda lo aprendido para la próxima visita.</p>
+  <div class="grid2">
+    <div>
+      <label class="drop" id="drop">
+        <input type="file" id="fileIn" accept=".xlsx,.xls" multiple>
+        <b>Arrastra aquí los archivos o haz clic para elegirlos</b>
+        <span class="muted">Formato anex-SIPSASemanal-…xlsx · puedes subir varios a la vez</span>
+      </label>
+      <div class="row">
+        <button class="ghost" id="btnClear">Borrar semanas cargadas</button>
+        <span class="muted" id="dataCount"></span>
+      </div>
+    </div>
+    <div>
+      <h3>Resultado de la última carga</h3>
+      <ul class="filelog" id="fileLog"><li class="muted">Todavía no has cargado archivos en esta visita.</li></ul>
+    </div>
+  </div>
+  <div>
+      <h3>Historial de aprendizaje</h3>
+      <div class="scroll" style="max-height:300px;overflow-y:auto"><table id="learnTable"></table></div>
+      <p class="explica" id="learnExpl">Cada carga queda registrada con el número de semanas que conocía el modelo y la política que recomendaba en ese momento, para ver cómo cambia la decisión a medida que llegan más datos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SERIE -->
+<section class="block" id="serie">
+  <h2>Datos observados</h2>
+  <p class="lead" id="serieLead">Precio medio semanal de la papa capira en la Central Mayorista de Antioquia. Cada semana se clasifica según el promedio de las 20 semanas (x̄ = 2.362,95 $/kg): Medio si está dentro de ±5 %, Bajo si está por debajo y Alto si está por encima.</p>
+  <div class="grid2">
+    <div class="scroll" style="max-height:440px;overflow-y:auto"><table id="serieTable"></table></div>
+    <div>
+      <div class="legend"><span><span class="dot dB"></span>Bajo</span><span><span class="dot dM"></span>Medio</span><span><span class="dot dA"></span>Alto</span><span id="legLim">– – límites 2.244,80 y 2.481,10</span><span>··· promedio</span></div>
+      <canvas id="serieChart" height="320" aria-label="Serie de precios con bandas de estado"></canvas>
+    </div>
+  </div>
+  <p class="explica" id="serieExpl"></p>
+</section>
+
+<!-- DATOS -->
+<section class="block" id="datos">
+  <h2>Datos del modelo</h2>
+  <p class="lead">La matriz P indica la probabilidad de pasar del precio de esta semana (fila) al de la próxima (columna). Se estima dividiendo cada conteo de la tabla de frecuencias entre el total de su fila. Es la misma para ambas acciones, porque vender o esperar no cambia el mercado.</p>
+  <div class="grid2">
+    <div>
+      <h3>Tabla de frecuencias de transición</h3>
+      <div class="scroll"><table class="freq" id="freqTable"></table></div>
+      <div class="row">
+        <label><input type="checkbox" id="closePair" checked> Incluir el par de cierre (última semana → primera)</label>
+        <label><input type="checkbox" id="onlyConsec"> Contar solo semanas consecutivas (7 días de diferencia)</label>
+      </div>
+      <p class="explica" id="freqExpl"></p>
+    </div>
+    <div>
+      <h3>Matriz de transición P</h3>
+      <div class="scroll"><table class="mat" id="matTable"></table></div>
+      <div class="row">
+        <button id="btnRestore">Restaurar datos del ejercicio</button>
+        <button class="ghost" id="btnNormalize">Normalizar filas</button>
+      </div>
+      <div id="matStatus" class="status ok" role="status"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Recompensas, costo y descuento</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Parámetro</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dot dB"></span>Recompensa al vender en Bajo</td><td><input type="number" step="0.1" id="r0"></td></tr>
+          <tr><td><span class="dot dM"></span>Recompensa al vender en Medio</td><td><input type="number" step="0.1" id="r1"></td></tr>
+          <tr><td><span class="dot dA"></span>Recompensa al vender en Alto</td><td><input type="number" step="0.1" id="r2"></td></tr>
+          <tr><td>Costo de esperar una semana ($/kg)</td><td><input type="number" step="1" min="0" id="cost"></td></tr>
+          <tr><td>Factor de descuento γ (0 &lt; γ &lt; 1)</td><td><input type="number" step="0.005" min="0" max="0.9999" id="gamma"></td></tr>
+        </tbody>
+      </table></div>
+      <div id="parStatus" class="status ok" role="status">Parámetros válidos.</div>
+    </div>
+    <div>
+      <p class="explica"><span id="rewTxt">Las recompensas son el promedio del precio de las semanas clasificadas en cada estado: Bajo 1.914,6, Medio 2.407,2 y Alto 2.722,8 $/kg.</span> Vender en el estado <i>s</i> paga <b>R(s)</b> y el proceso pasa al estado absorbente <b>Vendido</b>. Esperar cuesta <b>c</b> por semana (almacenamiento, merma y riesgo; 22 $/kg equivale a ≈ 0,9 % del precio Medio) y el precio se mueve según P. El factor γ hace que un peso dentro de una semana valga γ pesos hoy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DIAGRAMA -->
+<section class="block" id="diagrama">
+  <h2>Diagrama de transición</h2>
+  <p class="lead">El grosor de cada flecha es proporcional a su probabilidad. Las transiciones con probabilidad 0 no se dibujan.</p>
+  <div class="row">
+    <label>Acción mostrada
+      <select id="diagMode">
+        <option value="wait">A0 · Esperar (la cadena continúa)</option>
+        <option value="sell">A1 · Vender (todo va a Vendido)</option>
+        <option value="opt">Política óptima (iteración de valor)</option>
+      </select>
+    </label>
+  </div>
+  <div class="diagram-box">
+    <div id="diagram" aria-label="Diagrama de transición de estados"></div>
+    <div>
+      <p class="explica" id="diagExpl"></p>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICCIÓN -->
+<section class="block" id="prediccion">
+  <h2>Predicción del precio</h2>
+  <p class="lead">Si conoces el precio de esta semana, la distribución dentro de n semanas es π·Pⁿ, donde π pone probabilidad 1 en el estado actual.</p>
+  <div class="row">
+    <label>Precio esta semana
+      <select id="predS"><option value="0">Bajo</option><option value="1" selected>Medio</option><option value="2">Alto</option></select>
+    </label>
+    <label>Horizonte n
+      <input type="range" id="predNr" min="1" max="24" value="8">
+      <input type="number" id="predN" min="1" max="24" value="8">
+    </label>
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="legend"><span><span class="dot dB"></span>Bajo</span><span><span class="dot dM"></span>Medio</span><span><span class="dot dA"></span>Alto</span><span>– – distribución estacionaria</span></div>
+      <canvas id="predChart" height="300" aria-label="Gráfica de probabilidades por semana"></canvas>
+    </div>
+    <div class="scroll" style="max-height:340px;overflow-y:auto"><table id="predTable"></table></div>
+  </div>
+  <p class="explica" id="predExpl"></p>
+</section>
+
+<!-- MONTE CARLO -->
+<section class="block" id="montecarlo">
+  <h2>Simulación Monte Carlo</h2>
+  <p class="lead">Se generan muchas trayectorias aleatorias del precio con un generador de semilla fija (el mismo número de semilla repite el mismo resultado). Al avanzar, las frecuencias simuladas se comparan con las probabilidades teóricas.</p>
+  <div class="row">
+    <label>Inicio <select id="mcS"><option value="0">Bajo</option><option value="1" selected>Medio</option><option value="2">Alto</option></select></label>
+    <label>Trayectorias <input type="number" id="mcN" min="10" max="5000" value="500"></label>
+    <label>Semanas <input type="number" id="mcT" min="1" max="52" value="24"></label>
+    <label>Semilla <input type="number" id="mcSeed" value="2026"></label>
+    <label>Velocidad <input type="range" id="mcSpeed" min="1" max="30" value="6"><span id="mcSpeedL" class="muted">6 sem/s</span></label>
+  </div>
+  <div class="row">
+    <button id="mcPlay">Iniciar</button>
+    <button class="ghost" id="mcPause">Pausar</button>
+    <button class="ghost" id="mcFinish">Completar</button>
+    <button class="ghost" id="mcReset">Reiniciar</button>
+    <span id="mcStatus" class="muted"></span>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3>Trayectorias (se dibujan hasta 40)</h3>
+      <canvas id="mcTraj" height="260" aria-label="Trayectorias simuladas"></canvas>
+    </div>
+    <div>
+      <h3>Distribución en la semana actual</h3>
+      <div class="legend"><span>■ barra llena: simulada</span><span>□ barra con borde: teórica π·Pᵗ</span></div>
+      <canvas id="mcBars" height="240" aria-label="Frecuencias simuladas contra teóricas"></canvas>
+    </div>
+  </div>
+  <div class="scroll"><table id="mcTable"></table></div>
+  <div class="kpis" id="mcKpis"></div>
+  <p class="explica" id="mcExpl"></p>
+</section>
+
+<!-- INDICADORES -->
+<section class="block" id="indicadores">
+  <h2>Indicadores de la cadena</h2>
+  <p class="lead">Describen el comportamiento del precio a largo plazo, sin importar la decisión del productor. Si un estado no se puede alcanzar desde otro, el tiempo de primer paso se indica como ∞.</p>
+  <div class="grid2">
+    <div>
+      <h3>Distribución estacionaria y permanencia</h3>
+      <div class="scroll"><table id="indTable"></table></div>
+      <p class="explica" id="indExpl1"></p>
+    </div>
+    <div>
+      <h3>Tiempo esperado de primer paso (semanas)</h3>
+      <div class="scroll"><table id="fpTable"></table></div>
+      <p class="explica" id="indExpl2"></p>
+    </div>
+  </div>
+</section>
+
+<!-- VALOR -->
+<section class="block" id="valor">
+  <h2>Iteración de valor y política óptima</h2>
+  <p class="lead">Ecuación de Bellman: V(s) = máx{ R(s) , −c + γ·Σ P(s,s′)·V(s′) }. Se repite desde V = 0 hasta que el cambio es menor que 10⁻¹⁰.</p>
+  <div class="scroll"><table id="viTable"></table></div>
+  <p class="explica" id="viExpl"></p>
+  <h3>Comparación de políticas (valor esperado descontado)</h3>
+  <div class="scroll"><table id="polTable"></table></div>
+  <p class="explica" id="polExpl"></p>
+  <details>
+    <summary>Ver las primeras iteraciones</summary>
+    <div class="scroll"><table id="iterTable"></table></div>
+  </details>
+</section>
+
+<!-- SENSIBILIDAD -->
+<section class="block" id="sensibilidad">
+  <h2>Análisis de sensibilidad del costo de esperar</h2>
+  <p class="lead">La papa capira es perecedera, así que el costo semanal de guardarla es incierto. Mueve el deslizador para ver cómo cambia la política óptima; el resto de la página sigue usando el costo del modelo hasta que pulses «Usar este costo en el modelo».</p>
+  <div class="row">
+    <label>Costo de esperar <input type="range" id="sensC" min="0" max="150" step="1" value="22"> <b id="sensCL">22 $/kg</b></label>
+    <button class="ghost" id="sensApply">Usar este costo en el modelo</button>
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="scroll"><table id="sensTable"></table></div>
+      <div class="kpis" id="sensKpis"></div>
+    </div>
+    <div>
+      <div class="legend"><span><span class="dot dB"></span>Bajo</span><span><span class="dot dM"></span>Medio</span><span><span class="dot dA"></span>Alto</span><span>Curva = Q(Esperar) − R(s): sobre 0 conviene esperar</span></div>
+      <canvas id="sensChart" height="280" aria-label="Ventaja de esperar según el costo semanal"></canvas>
+    </div>
+  </div>
+  <p class="explica" id="sensExpl"></p>
+</section>
+
+<!-- PREGUNTAS -->
+<section class="block" id="preguntas">
+  <h2>Preguntas del ejercicio</h2>
+  <p class="lead">Cada respuesta se calcula con los datos actuales del modelo.</p>
+  <div class="grid2">
+    <div>
+      <div class="qbtns">
+        <button data-q="1">Si hoy el precio es Bajo, ¿cuántas semanas espero hasta ver precio Alto?</button>
+        <button data-q="2">¿Probabilidad de precio Alto dentro de 4 semanas partiendo de Medio?</button>
+        <button data-q="3">¿En qué niveles de precio debo vender y cuánto gano frente a vender ya?</button>
+        <button data-q="4">¿Hasta qué costo semanal de almacenamiento conviene seguir esperando?</button>
+      </div>
+      <h3>Pregunta libre</h3>
+      <div class="row" style="flex-wrap:nowrap">
+        <input type="text" id="freeQ" placeholder="Ej.: probabilidad de Bajo en 6 semanas desde Alto" style="flex:1;min-width:0">
+        <button id="freeBtn">Responder</button>
+      </div>
+      <div class="chips" id="chips">
+        <button>Probabilidad de Alto en 6 semanas desde Bajo</button>
+        <button>¿Conviene vender si el precio está Medio?</button>
+        <button>¿Cuánto dura una racha de precio Alto?</button>
+        <button>Semanas de Medio a Bajo</button>
+        <button>Distribución a largo plazo</button>
+        <button>Si vendo en Bajo, ¿cuánto pierdo?</button>
+        <button>¿Con qué costo conviene vender en Bajo?</button>
+      </div>
+      <p class="muted" style="font-size:.86rem">Reconoce estados (bajo, medio, alto), números de semanas (también «un mes» = 4), acciones (vender, esperar), costo de almacenamiento y temas como probabilidad, primer paso, permanencia, estacionaria o política.</p>
+    </div>
+    <div class="answer" id="answer" aria-live="polite"><p class="muted">Elige una pregunta o escribe la tuya.</p></div>
+  </div>
+</section>
+
+<footer id="footTxt">Modelo ilustrativo con fines académicos. Datos: DANE – SIPSA, boletines semanales de precios mayoristas, 2026. P estimada de 20 transiciones (19 pares consecutivos más el par de cierre S20 → S1).</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const NAMES=['Bajo','Medio','Alto'], SH=['B','M','A'];
+const DEF={P:[[0.8,0.2,0],[0,0.6,0.4],[0.2,0.6,0.2]],R:[1914.6,2407.2,2722.8],c:22,g:0.99};
+const FREQ_OBS=[[4,1,0],[0,6,4],[0,3,1]]; // 19 pares consecutivos
+const BASE=[["2026-01-03",1683],["2026-01-10",1665],["2026-02-07",2050],["2026-02-14",1983],["2026-03-07",2192],["2026-03-14",2333],["2026-04-04",2942],["2026-04-11",2408],["2026-05-02",2523],["2026-05-09",2446],["2026-05-16",2410],["2026-06-06",2915],["2026-06-13",2688],["2026-07-04",2396],["2026-07-11",2405],["2026-08-01",2478],["2026-08-08",2398],["2026-08-15",2340],["2026-09-05",2458],["2026-09-12",2546]];
+const BASE_END={"2026-08-01":"2026-08-06"};
+let SERIE=[],MEAN=2362.95,LO=2244.80,HI=2481.10,KN=null;
+let uploaded={},learnLog=[],daneData={},daneInfo=null;
+const stateOf=p=>p<LO?0:p>HI?2:1;
+const M3=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MESL={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,setiembre:9,octubre:10,noviembre:11,diciembre:12};
+const MESC={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,set:9,oct:10,nov:11,dic:12};
+const normTxt=t=>String(t??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+const pad=n=>String(n).padStart(2,'0');
+const toDate=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(Date.UTC(y,m-1,d));};
+const addDays=(k,n)=>{const d=toDate(k);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+const dayDiff=(a,b)=>Math.round((toDate(b)-toDate(a))/864e5);
+function weekLabel(k,e){e=e||addDays(k,6);const [y,m,d]=k.split('-').map(Number),[,m2,d2]=e.split('-').map(Number);return m===m2?`${d}–${d2} ${M3[m]} ${y}`:`${d} ${M3[m]}–${d2} ${M3[m2]} ${y}`;}
+function dataset(){const m=new Map(BASE.map(([k,p])=>[k,{key:k,end:BASE_END[k]||addDays(k,6),medio:p,src:'base'}]));
+  Object.values(daneData).forEach(w=>{if(w&&w.key&&isFinite(w.medio))m.set(w.key,{...w,src:'dane'});});
+  Object.values(uploaded).forEach(w=>{if(w&&w.key&&isFinite(w.medio))m.set(w.key,{...w,src:'carga'});});
+  return [...m.values()].sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:0);}
+/* conocimiento derivado de todas las semanas disponibles */
+function derive(){const D=dataset(),n=D.length;
+  const mean=D.reduce((a,w)=>a+w.medio,0)/n,lo=mean*0.95,hi=mean*1.05;
+  const st=D.map(w=>w.medio<lo?0:w.medio>hi?2:1);
+  const cnt=[0,0,0],sum=[0,0,0];st.forEach((s,i)=>{cnt[s]++;sum[s]+=D[i].medio;});
+  const R=[0,1,2].map(s=>cnt[s]?sum[s]/cnt[s]:(s===0?lo:s===2?hi:mean));
+  const only=$('#onlyConsec').checked,close=$('#closePair').checked;
+  const F=[[0,0,0],[0,0,0],[0,0,0]];let pairs=0,consec=0;
+  for(let i=0;i+1<n;i++){const c=dayDiff(D[i].key,D[i+1].key)===7;if(c)consec++;if(only&&!c)continue;F[st[i]][st[i+1]]++;pairs++;}
+  if(close&&n>1){F[st[n-1]][st[0]]++;pairs++;}
+  return {D,n,mean,lo,hi,st,cnt,R,F,pairs,consec,close,only};}
+function applyKnowledge(){const k=derive();KN=k;MEAN=k.mean;LO=k.lo;HI=k.hi;
+  SERIE=k.D.map((w,i)=>['S'+(i+1),weekLabel(w.key,w.end),w.medio,w.src]);
+  freq=k.F.map(r=>r.slice());fillFreq();
+  model.R=k.R.map(x=>Math.round(x*10)/10);for(let i=0;i<3;i++)$('#r'+i).value=model.R[i];
+  updateTexts();onFreq();renderLearn();}
+function updateTexts(){const k=KN,f=SERIE[0],l=SERIE[SERIE.length-1];
+  const rango=`${f[1]} a ${l[1]}`;
+  $('#factFuente').textContent=`DANE – SIPSA, ${rango} (${k.n} semanas)`;
+  $('#factEstados').innerHTML=`${dot(0)}Bajo &lt; ${fmt(k.lo,2)} · ${dot(1)}Medio ±5 % de ${fmt(k.mean,2)} · ${dot(2)}Alto &gt; ${fmt(k.hi,2)}`;
+  $('#notice').innerHTML=`<b>Resultados ilustrativos.</b> ${k.consec<k.n-1?`De las ${k.n} semanas, solo ${k.consec} de los ${k.n-1} pares son semanas consecutivas en el calendario`:`Las ${k.n} semanas son consecutivas`}${k.close?`; el par de cierre ${l[0]} → S1 es un supuesto para completar ${k.pairs} transiciones`:''}. La papa capira es un producto perecedero: el costo real de almacenar (merma y riesgo) puede ser mayor que el supuesto de 22 $/kg por semana.`;
+  $('#serieLead').innerHTML=`Precio medio semanal de la papa capira en la Central Mayorista de Antioquia. Cada semana se clasifica según el promedio de las ${k.n} semanas (x̄ = ${fmt(k.mean,2)} $/kg): Medio si está dentro de ±5 %, Bajo si está por debajo y Alto si está por encima. Las semanas cargadas desde archivos se marcan con ●.`;
+  $('#legLim').textContent=`– – límites ${fmt(k.lo,2)} y ${fmt(k.hi,2)}`;
+  $('#rewTxt').textContent=`Las recompensas son el promedio del precio de las semanas clasificadas en cada estado: Bajo ${fmt(k.R[0],1)}, Medio ${fmt(k.R[1],1)} y Alto ${fmt(k.R[2],1)} $/kg${k.cnt.some(c=>c===0)?' (un estado sin semanas usa su límite como recompensa)':''}.`;
+  $('#footTxt').textContent=`Modelo ilustrativo con fines académicos. Datos: DANE – SIPSA, boletines semanales de precios mayoristas (${k.n} semanas: ${20} del ejercicio base${k.n>20?` y ${k.n-20} cargadas`:''}). P estimada de ${k.pairs} transiciones.`;
+  const nc=Object.keys(uploaded).length;$('#dataCount').textContent=`${k.n} semanas en el modelo · ${nc} cargada${nc===1?'':'s'} desde archivos`;}
+let freq=null;
+const model=JSON.parse(JSON.stringify(DEF));
+const res={};
+let lastQ=null;
+
+/* ---------- utilidades ---------- */
+function fmt(x,d=3){if(x===Infinity)return '∞';if(!isFinite(x))return '—';return Number(x).toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});}
+const pct=(x,d=1)=>fmt(100*x,d)+' %';
+const cop=(x,d=1)=>fmt(x,d)+' $/kg';
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const stColor=i=>cssVar(['--b','--m','--a','--v'][i]);
+const dot=i=>`<span class="dot d${['B','M','A','V'][i]}"></span>`;
+function vecMat(v,P){const n=P.length,r=new Array(n).fill(0);for(let i=0;i<n;i++)for(let j=0;j<n;j++)r[j]+=v[i]*P[i][j];return r;}
+function distAt(s0,n,P){let v=[0,0,0];v[s0]=1;for(let k=0;k<n;k++)v=vecMat(v,P);return v;}
+function solve(A,b){const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    if(Math.abs(M[p][c])<1e-12)return null;[M[c],M[p]]=[M[p],M[c]];
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/M[c][c];for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];}}
+  return M.map((r,i)=>r[n]/r[i]);}
+function stationary(P){const n=P.length,A=[];
+  for(let i=0;i<n;i++){A.push([]);for(let j=0;j<n;j++)A[i].push(P[j][i]-(i===j?1:0));}
+  A[n-1]=new Array(n).fill(1);const b=new Array(n).fill(0);b[n-1]=1;
+  let x=solve(A,b);
+  if(!x||x.some(v=>v<-1e-9)){x=new Array(n).fill(1/n);for(let k=0;k<5000;k++)x=vecMat(x,P);}
+  return x.map(v=>Math.max(0,v));}
+/* tiempo esperado para llegar a un conjunto objetivo */
+function hitTime(P,target){const n=P.length;
+  const reach=target.slice();let ch=true;
+  while(ch){ch=false;for(let i=0;i<n;i++)if(!reach[i]&&P[i].some((p,k)=>p>1e-12&&reach[k])){reach[i]=true;ch=true;}}
+  const bad=reach.map(r=>!r);ch=true;
+  while(ch){ch=false;for(let i=0;i<n;i++)if(!bad[i]&&!target[i]&&P[i].some((p,k)=>p>1e-12&&bad[k])){bad[i]=true;ch=true;}}
+  const m=new Array(n).fill(0),idx=[];
+  for(let i=0;i<n;i++){if(target[i])continue;if(bad[i])m[i]=Infinity;else idx.push(i);}
+  if(idx.length){const A=idx.map(i=>idx.map(k=>(i===k?1:0)-P[i][k]));const x=solve(A,idx.map(()=>1));idx.forEach((i,t)=>m[i]=x?x[t]:Infinity);}
+  return m;}
+function firstPassage(P){const n=P.length,F=[...Array(n)].map(()=>new Array(n).fill(0));
+  for(let j=0;j<n;j++){const tg=new Array(n).fill(false);tg[j]=true;const h=hitTime(P,tg);
+    for(let i=0;i<n;i++)if(i!==j)F[i][j]=h[i];
+    let s=1;for(let k=0;k<n;k++)if(k!==j&&P[j][k]>1e-12)s+=P[j][k]*h[k];F[j][j]=s;}
+  return F;}
+function valueIter(P,R,c,g){let V=[0,0,0];const hist=[V.slice()];let it=0,diff=1;
+  const q0=(s,V)=>-c+g*P[s].reduce((a,p,k)=>a+p*V[k],0);
+  while(diff>1e-10&&it<50000){const W=V.map((_,s)=>Math.max(q0(s,V),R[s]));diff=Math.max(...W.map((w,i)=>Math.abs(w-V[i])));V=W;it++;if(hist.length<16)hist.push(V.slice());}
+  const Q0=V.map((_,s)=>q0(s,V)),Q1=R.slice(),pol=Q0.map((q,s)=>Q1[s]>=q-1e-12?1:0);
+  return {V,Q0,Q1,pol,it,hist};}
+function alwaysWait(P,c,g){const A=P.map((r,i)=>r.map((p,j)=>(i===j?1:0)-g*p));return solve(A,[-c,-c,-c])||[-c/(1-g),-c/(1-g),-c/(1-g)];}
+
+/* ---------- canvas ---------- */
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth||600,h=+cv.getAttribute('height');
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {ctx,w,h};}
+
+/* ---------- serie observada ---------- */
+function renderSerie(){const sts=SERIE.map(r=>stateOf(r[2]));
+  let h='<thead><tr><th>Semana</th><th>Periodo</th><th>Precio medio ($/kg)</th><th>Estado</th></tr></thead><tbody>';
+  SERIE.forEach((r,i)=>{h+=`<tr><td>${r[0]}${r[3]!=='base'?'<span title="'+(r[3]==='dane'?'Descargada automáticamente del DANE':'Cargada desde archivo')+'" style="color:var(--accent)"> ●</span>':''}</td><td>${r[1]}</td><td>${fmt(r[2],0)}</td><td><span class="st st${SH[sts[i]]}">${SH[sts[i]]}</span></td></tr>`;});
+  $('#serieTable').innerHTML=h+'</tbody>';
+  const {ctx,w,h:hh}=prep($('#serieChart'));const L=54,Rm=12,T=12,B=34,pw=w-L-Rm,ph=hh-T-B;const pv=SERIE.map(r=>r[2]);const y0=Math.floor((Math.min(...pv,LO)-120)/100)*100,y1=Math.ceil((Math.max(...pv,HI)+120)/100)*100;
+  const X=i=>L+pw*(i+0.5)/SERIE.length,Y=v=>T+ph*(1-(v-y0)/(y1-y0));
+  ctx.font='12px '+cssVar('--sans');
+  [[y0,LO,0],[LO,HI,1],[HI,y1,2]].forEach(([a,b,s])=>{ctx.fillStyle=stColor(s);ctx.globalAlpha=.09;ctx.fillRect(L,Y(b),pw,Y(a)-Y(b));});ctx.globalAlpha=1;
+  const gs=(y1-y0)>2400?500:200;for(let v=Math.ceil(y0/gs)*gs;v<=y1;v+=gs){ctx.strokeStyle=cssVar('--grid');ctx.beginPath();ctx.moveTo(L,Y(v));ctx.lineTo(w-Rm,Y(v));ctx.stroke();ctx.fillStyle=cssVar('--muted');ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(fmt(v,0),L-6,Y(v));}
+  ctx.strokeStyle=cssVar('--muted');ctx.setLineDash([6,4]);[LO,HI].forEach(v=>{ctx.beginPath();ctx.moveTo(L,Y(v));ctx.lineTo(w-Rm,Y(v));ctx.stroke();});
+  ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(L,Y(MEAN));ctx.lineTo(w-Rm,Y(MEAN));ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle=cssVar('--ink');ctx.lineWidth=1.6;ctx.beginPath();SERIE.forEach((r,i)=>{i?ctx.lineTo(X(i),Y(r[2])):ctx.moveTo(X(i),Y(r[2]));});ctx.stroke();ctx.lineWidth=1;
+  SERIE.forEach((r,i)=>{ctx.fillStyle=stColor(sts[i]);ctx.beginPath();ctx.arc(X(i),Y(r[2]),4.5,0,7);ctx.fill();});
+  ctx.fillStyle=cssVar('--muted');ctx.textAlign='center';ctx.textBaseline='top';const step=Math.max(1,Math.ceil(SERIE.length*42/pw));
+  SERIE.forEach((r,i)=>{if(i%step===0)ctx.fillText(r[0],X(i),hh-B+6);});
+  const cnt=[0,0,0];sts.forEach(s=>cnt[s]++);
+  const ult=SERIE[SERIE.length-1];$('#serieExpl').innerHTML=`Las ${SERIE.length} semanas quedan en <b>Bajo ${cnt[0]}</b>, <b>Medio ${cnt[1]}</b> y <b>Alto ${cnt[2]}</b>. Los límites son ${fmt(MEAN,2)} × 0,95 = ${fmt(LO,2)} y ${fmt(MEAN,2)} × 1,05 = ${fmt(HI,2)} $/kg. La semana más reciente (${ult[0]}, ${ult[1]}) está en <b>${NAMES[stateOf(ult[2])]}</b> con ${cop(ult[2],0)}${res.vi?`: la política óptima actual recomienda <b>${res.vi.pol[stateOf(ult[2])]?'vender':'esperar'}</b>`:''}.`;}
+
+/* ---------- datos: frecuencias ---------- */
+function buildFreq(){let h='<thead><tr><th>t \\ t+1</th>'+NAMES.map((n,j)=>`<th>${dot(j)}${n}</th>`).join('')+'<th>Total nᵢ</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++){h+=`<tr><td>${dot(i)}${NAMES[i]}</td>`;for(let j=0;j<3;j++)h+=`<td><input type="number" step="1" min="0" id="f${i}${j}" aria-label="Conteo de ${NAMES[i]} a ${NAMES[j]}"></td>`;h+=`<td id="fs${i}"></td></tr>`;}
+  h+='<tr><td><b>Total</b></td><td id="fc0"></td><td id="fc1"></td><td id="fc2"></td><td id="fT"></td></tr>';
+  $('#freqTable').innerHTML=h+'</tbody>';
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++)$('#f'+i+j).addEventListener('input',onFreq);}
+function fillFreq(){for(let i=0;i<3;i++)for(let j=0;j<3;j++)$('#f'+i+j).value=freq[i][j];updateFreqTotals();}
+function updateFreqTotals(){let T=0;const col=[0,0,0];
+  for(let i=0;i<3;i++){const s=freq[i].reduce((a,b)=>a+b,0);$('#fs'+i).textContent=s;T+=s;freq[i].forEach((v,j)=>col[j]+=v);}
+  col.forEach((v,j)=>$('#fc'+j).textContent=v);$('#fT').innerHTML='<b>'+T+'</b>';
+  $('#freqExpl').innerHTML=`Cada par de semanas seguidas (t → t+1) suma 1 en la celda de la fila t y la columna t+1. Hay <b>${T}</b> transiciones. ${KN?`${KN.only?`Solo se cuentan pares de semanas consecutivas (${KN.consec} de ${KN.n-1}).`:`Se cuentan los ${KN.n-1} pares en orden cronológico, aunque solo ${KN.consec} son semanas consecutivas.`} ${KN.close?`Incluye el par de cierre ${SERIE[SERIE.length-1][0]} → S1 (${NAMES[KN.st[KN.n-1]]} → ${NAMES[KN.st[0]]}), que une ${SERIE[SERIE.length-1][1]} con ${SERIE[0][1]}: es un supuesto, no una transición observada.`:'Sin el par de cierre, un estado puede quedar transitorio si la serie nunca vuelve a él.'}`:''} Si editas los conteos a mano, la matriz se recalcula; al cargar nuevos datos se vuelven a contar desde la serie.`;}
+function onFreq(){let ok=true;
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++){const el=$('#f'+i+j),v=parseInt(el.value);const good=isFinite(v)&&v>=0;el.classList.toggle('bad',!good);if(good)freq[i][j]=v;else ok=false;}
+  updateFreqTotals();
+  const zero=[0,1,2].filter(i=>freq[i].reduce((a,b)=>a+b,0)===0);
+  if(!ok){const st=$('#matStatus');st.className='status err';st.textContent='Los conteos deben ser enteros mayores o iguales a 0.';return;}
+  for(let i=0;i<3;i++){const s=freq[i].reduce((a,b)=>a+b,0);for(let j=0;j<3;j++)$('#p'+i+j).value=s?+(freq[i][j]/s).toFixed(4):(i===j?1:0);}
+  for(let i=0;i<3;i++){const v=[0,1,2].map(j=>parseFloat($('#p'+i+j).value));const s=v.reduce((a,b)=>a+b,0);const k=v.indexOf(Math.max(...v));$('#p'+i+k).value=+(v[k]+1-s).toFixed(4);}
+  onMatrix();
+  if(zero.length){const st=$('#matStatus');st.className='status err';st.textContent=`La fila ${zero.map(i=>NAMES[i]).join(', ')} no tiene transiciones observadas; se usa provisionalmente p = 1 de permanecer en ese estado hasta que haya más datos.`;}}
+
+/* ---------- datos: matriz ---------- */
+function buildMatrix(){let h='<thead><tr><th>Desde \\ hacia</th>'+NAMES.map((n,j)=>`<th>${dot(j)}${n}</th>`).join('')+'<th>Suma</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++){h+=`<tr><td>${dot(i)}${NAMES[i]}</td>`;for(let j=0;j<3;j++)h+=`<td><input type="number" step="0.01" min="0" max="1" id="p${i}${j}" aria-label="P de ${NAMES[i]} a ${NAMES[j]}"></td>`;h+=`<td id="sum${i}"></td></tr>`;}
+  $('#matTable').innerHTML=h+'</tbody>';
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++)$('#p'+i+j).addEventListener('input',onMatrix);}
+function fillInputs(){for(let i=0;i<3;i++)for(let j=0;j<3;j++)$('#p'+i+j).value=model.P[i][j];
+  for(let i=0;i<3;i++)$('#r'+i).value=model.R[i];$('#cost').value=model.c;$('#sensC').value=Math.min(150,Math.round(model.c));$('#gamma').value=model.g;}
+function onMatrix(){const P=[];let ok=true;const bad=[];
+  for(let i=0;i<3;i++){P.push([]);let s=0,rowOk=true;
+    for(let j=0;j<3;j++){const el=$('#p'+i+j),v=parseFloat(String(el.value).replace(',','.'));const good=isFinite(v)&&v>=0&&v<=1;el.classList.toggle('bad',!good);if(!good)rowOk=false;P[i].push(good?v:NaN);s+=good?v:0;}
+    const cell=$('#sum'+i);const sumOk=rowOk&&Math.abs(s-1)<1e-6;cell.textContent=rowOk?fmt(s,3):'—';cell.className=sumOk?'sum-ok':'sum-bad';
+    if(!sumOk){ok=false;bad.push(NAMES[i]);for(let j=0;j<3;j++)if(rowOk)$('#p'+i+j).classList.add('bad');}}
+  const st=$('#matStatus');
+  if(ok){model.P=P;st.className='status ok';st.textContent='Matriz válida: cada fila suma 1. Los resultados están actualizados.';recompute();}
+  else{st.className='status err';st.textContent=`La fila ${bad.join(', ')} no suma 1 (o tiene valores fuera de [0, 1]). Corrígela o usa «Normalizar filas»; mientras tanto se muestran los resultados de la última matriz válida.`;}}
+function onParams(){const R=[0,1,2].map(i=>parseFloat($('#r'+i).value)),c=parseFloat($('#cost').value),g=parseFloat($('#gamma').value);
+  const st=$('#parStatus');const ok=R.every(isFinite)&&isFinite(c)&&c>=0&&isFinite(g)&&g>0&&g<1;
+  ['r0','r1','r2'].forEach((id,i)=>$('#'+id).classList.toggle('bad',!isFinite(R[i])));$('#cost').classList.toggle('bad',!(isFinite(c)&&c>=0));$('#gamma').classList.toggle('bad',!(isFinite(g)&&g>0&&g<1));
+  if(ok){model.R=R;model.c=c;model.g=g;st.className='status ok';st.textContent='Parámetros válidos.';recompute();}
+  else{st.className='status err';st.textContent='Revisa los parámetros: las recompensas deben ser números, el costo ≥ 0 y γ estrictamente entre 0 y 1.';}}
+
+/* ---------- recálculo ---------- */
+function recompute(){const P=model.P;
+  res.pi=stationary(P);res.soj=P.map((r,i)=>r[i]<1?1/(1-r[i]):Infinity);res.F=firstPassage(P);
+  res.vi=valueIter(P,model.R,model.c,model.g);res.aw=alwaysWait(P,model.c,model.g);
+  res.sellHit=hitTime(P,res.vi.pol.map(a=>a===1));res.th=null;
+  if(SERIE.length)renderSerie();renderDiagram();renderPred();renderIndic();renderVI();renderSens();mcReset();
+  if(lastQ)lastQ();}
+
+/* ---------- diagrama SVG ---------- */
+function renderDiagram(){const mode=$('#diagMode').value,P=model.P,pol=res.vi.pol,showV=mode!=='wait';
+  const W=640,H=showV?560:400,r=44;
+  const pos=[{x:125,y:310},{x:320,y:125},{x:515,y:310}],V={x:320,y:490};
+  const cx=320,cy=250;
+  const cols=[0,1,2,3].map(stColor);
+  let defs='<defs>'+cols.map((c,i)=>`<marker id="ar${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join('')+'</defs>';
+  let edges='',labels='';
+  const lab=(x,y,t,c)=>{const w=t.length*7.2+12;labels+=`<g><rect x="${x-w/2}" y="${y-11}" width="${w}" height="21" rx="10" fill="var(--paper)" stroke="${c}" stroke-width="1.2"/><text class="svg-label" x="${x}" y="${y+4}" text-anchor="middle">${t}</text></g>`;};
+  const unit=(dx,dy)=>{const l=Math.hypot(dx,dy)||1;return [dx/l,dy/l];};
+  const arc=(a,b,p,ci,txt,bend=55)=>{const [dx,dy]=unit(b.x-a.x,b.y-a.y);const nx=-dy,ny=dx;
+    const C={x:(a.x+b.x)/2+nx*bend,y:(a.y+b.y)/2+ny*bend};
+    const [ux,uy]=unit(C.x-a.x,C.y-a.y),[vx,vy]=unit(C.x-b.x,C.y-b.y);
+    const s={x:a.x+ux*r,y:a.y+uy*r},e={x:b.x+vx*(r+2),y:b.y+vy*(r+2)};
+    edges+=`<path d="M${s.x},${s.y} Q${C.x},${C.y} ${e.x},${e.y}" fill="none" stroke="${cols[ci]}" stroke-width="${1.4+4.5*p}" stroke-opacity=".85" marker-end="url(#ar${ci})"/>`;
+    lab(0.25*s.x+0.5*C.x+0.25*e.x,0.25*s.y+0.5*C.y+0.25*e.y,txt,cols[ci]);};
+  const loop=(a,p,ci,txt,out)=>{const [ux,uy]=out||unit(a.x-cx,a.y-cy);const ang=Math.atan2(uy,ux);
+    const d=t=>[Math.cos(t),Math.sin(t)];const [s1,s2]=d(ang-0.5),[e1,e2]=d(ang+0.5),[c1x,c1y]=d(ang-0.75),[c2x,c2y]=d(ang+0.75);
+    const R2=r*2.7;
+    edges+=`<path d="M${a.x+s1*r},${a.y+s2*r} C${a.x+c1x*R2},${a.y+c1y*R2} ${a.x+c2x*R2},${a.y+c2y*R2} ${a.x+e1*(r+2)},${a.y+e2*(r+2)}" fill="none" stroke="${cols[ci]}" stroke-width="${1.4+4.5*p}" stroke-opacity=".85" marker-end="url(#ar${ci})"/>`;
+    lab(a.x+ux*(r*2.45),a.y+uy*(r*2.45),txt,cols[ci]);};
+  for(let i=0;i<3;i++){
+    const sells=mode==='sell'||(mode==='opt'&&pol[i]===1);
+    if(sells){arc(pos[i],V,1,i,'1 · +'+fmt(model.R[i],1),i===1?0:(i===0?-40:40));continue;}
+    for(let j=0;j<3;j++){const p=P[i][j];if(p<=1e-12)continue;
+      if(i===j)loop(pos[i],p,i,fmt(p,2));else arc(pos[i],pos[j],p,i,fmt(p,2));}}
+  if(showV)loop(V,1,3,'1',[1,0]);
+  let nodes='';
+  for(let i=0;i<3;i++){const p=pos[i];let tag='';
+    const dy=mode==='opt'?-7:0;
+    if(mode==='opt')tag=`<text class="svg-sub" style="font-weight:700" x="${p.x}" y="${p.y+26}" text-anchor="middle">${pol[i]?'▸ Vender':'▸ Esperar'}</text>`;
+    nodes+=`<g><circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${cols[i]}" stroke="var(--paper)" stroke-width="3"/><text class="svg-node" x="${p.x}" y="${p.y-4+dy}" text-anchor="middle">${NAMES[i]}</text><text class="svg-sub" x="${p.x}" y="${p.y+12+dy}" text-anchor="middle">R = ${fmt(model.R[i],1)}</text>${tag}</g>`;}
+  if(showV)nodes+=`<g><circle cx="${V.x}" cy="${V.y}" r="${r}" fill="${cols[3]}" stroke="var(--paper)" stroke-width="3"/><text class="svg-node" style="font-size:13px" x="${V.x}" y="${V.y+5}" text-anchor="middle">Vendido</text></g>`;
+  $('#diagram').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Diagrama de transición">${defs}${edges}${nodes}${labels}</svg>`;
+  let t;
+  if(mode==='wait')t=`Con <b>A0 · Esperar</b> el precio sigue la cadena de Markov: los lazos muestran la probabilidad de repetir el mismo nivel la semana siguiente (por ejemplo, Alto se repite con ${pct(P[2][2],0)}). Cada semana de espera cuesta ${cop(model.c)}.`;
+  else if(mode==='sell')t=`Con <b>A1 · Vender</b> cualquier estado pasa con probabilidad 1 al estado absorbente <b>Vendido</b>, cobrando R(s). Una vez vendido, el proceso no sale de ahí (lazo con probabilidad 1).`;
+  else{const ss=[0,1,2].filter(i=>pol[i]),ww=[0,1,2].filter(i=>!pol[i]);
+    t=`La <b>política óptima</b> combina ambas acciones: vende en ${ss.length?ss.map(i=>NAMES[i]).join(' y '):'ningún estado'} y espera en ${ww.length?ww.map(i=>NAMES[i]).join(' y '):'ningún estado'}. En los estados donde se espera, el precio sigue moviéndose hasta llegar a un estado de venta.`;}
+  $('#diagExpl').innerHTML=t;}
+
+/* ---------- predicción ---------- */
+function drawLines(cv,rows,ref){const {ctx,w,h}=prep(cv);const L=44,Rm=12,T=12,B=36,pw=w-L-Rm,ph=h-T-B,n=rows.length-1;
+  const X=x=>L+pw*x/Math.max(1,n),Y=y=>T+ph*(1-y);
+  ctx.font='12px '+cssVar('--sans');ctx.lineWidth=1;
+  for(let k=0;k<=5;k++){const y=k/5;ctx.strokeStyle=cssVar('--grid');ctx.beginPath();ctx.moveTo(L,Y(y));ctx.lineTo(w-Rm,Y(y));ctx.stroke();ctx.fillStyle=cssVar('--muted');ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText((y*100).toFixed(0)+' %',L-6,Y(y));}
+  const step=Math.max(1,Math.ceil(n/12));ctx.textAlign='center';ctx.textBaseline='top';
+  for(let x=0;x<=n;x+=step)ctx.fillText(x,X(x),h-B+6);
+  ctx.fillText('semana',L+pw/2,h-16);
+  for(let i=0;i<3;i++){const c=stColor(i);
+    ctx.setLineDash([5,5]);ctx.strokeStyle=c;ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(L,Y(ref[i]));ctx.lineTo(w-Rm,Y(ref[i]));ctx.stroke();
+    ctx.setLineDash([]);ctx.globalAlpha=1;ctx.lineWidth=2.5;ctx.beginPath();rows.forEach((v,k)=>{k?ctx.lineTo(X(k),Y(v[i])):ctx.moveTo(X(k),Y(v[i]));});ctx.stroke();
+    ctx.fillStyle=c;rows.forEach((v,k)=>{ctx.beginPath();ctx.arc(X(k),Y(v[i]),n>16?2.2:3.2,0,7);ctx.fill();});ctx.lineWidth=1;}}
+function renderPred(){const s0=+$('#predS').value,n=+$('#predN').value,P=model.P;
+  let v=[0,0,0];v[s0]=1;const rows=[v];for(let k=1;k<=n;k++){v=vecMat(v,P);rows.push(v);}
+  let h='<thead><tr><th>Semana</th>'+NAMES.map((x,j)=>`<th>${dot(j)}${x}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach((r,k)=>{h+=`<tr class="${k===n?'hl':''}"><td>${k}</td>${r.map(x=>`<td>${pct(x,1)}</td>`).join('')}</tr>`;});
+  $('#predTable').innerHTML=h+'</tbody>';
+  drawLines($('#predChart'),rows,res.pi);
+  const f=rows[n],best=f.indexOf(Math.max(...f));
+  const dist=Math.max(...f.map((x,i)=>Math.abs(x-res.pi[i])));
+  $('#predExpl').innerHTML=`Partiendo de <b>${NAMES[s0]}</b>, dentro de <b>${n}</b> semana${n>1?'s':''} el precio estará Bajo con ${pct(f[0])}, Medio con ${pct(f[1])} y Alto con ${pct(f[2])}; lo más probable es <b>${NAMES[best]}</b>. Cada fila se obtiene multiplicando la anterior por P. Las líneas punteadas son la distribución estacionaria: a la semana ${n} la mayor diferencia con ella es de ${fmt(dist*100,2)} puntos porcentuales, así que ${dist<0.01?'el precio de hoy ya casi no influye en la predicción':'el precio de hoy todavía influye en la predicción'}.`;}
+
+/* ---------- indicadores ---------- */
+function renderIndic(){const P=model.P,pi=res.pi,F=res.F;
+  let h='<thead><tr><th>Estado</th><th>π (estacionaria)</th><th>Permanencia media</th><th>Retorno medio 1/π</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++)h+=`<tr><td>${dot(i)}${NAMES[i]}</td><td>${pct(pi[i],2)}</td><td>${fmt(res.soj[i],2)} sem</td><td>${pi[i]>1e-12?fmt(1/pi[i],2)+' sem':'∞'}</td></tr>`;
+  $('#indTable').innerHTML=h+'</tbody>';
+  const mx=pi.indexOf(Math.max(...pi));
+  $('#indExpl1').innerHTML=`La distribución estacionaria resuelve π = π·P con π<sub>B</sub>+π<sub>M</sub>+π<sub>A</sub> = 1: a largo plazo el precio pasa ${pct(pi[0])} de las semanas en Bajo, ${pct(pi[1])} en Medio y ${pct(pi[2])} en Alto${Math.max(...pi)-Math.min(...pi)<1e-6?' (¡reparto exactamente igual!)':', con '+NAMES[mx]+' como el nivel más frecuente'}. La <b>permanencia media</b> 1/(1 − p<sub>ii</sub>) es cuántas semanas seguidas dura una racha en ese nivel: una racha de precio Alto dura en promedio ${fmt(res.soj[2],2)} semanas.`;
+  h='<thead><tr><th>Desde \\ hasta</th>'+NAMES.map((x,j)=>`<th>${dot(j)}${x}</th>`).join('')+'</tr></thead><tbody>';
+  for(let i=0;i<3;i++)h+=`<tr><td>${dot(i)}${NAMES[i]}</td>${F[i].map((x,j)=>`<td${i===j?' class="muted"':''}>${fmt(x,2)}</td>`).join('')}</tr>`;
+  $('#fpTable').innerHTML=h+'</tbody>';
+  $('#indExpl2').innerHTML=`m<sub>ij</sub> es el número esperado de semanas para llegar por primera vez al nivel j saliendo de i. Se obtiene de m<sub>ij</sub> = 1 + Σ<sub>k≠j</sub> p<sub>ik</sub>·m<sub>kj</sub>. Por ejemplo, desde Bajo se tarda en promedio <b>${fmt(F[0][2],2)}</b> semanas en ver precio Alto, y desde Alto <b>${fmt(F[2][0],2)}</b> semanas en volver a Bajo. La diagonal (en gris) es el tiempo medio de retorno, que coincide con 1/π.`;}
+
+/* ---------- iteración de valor ---------- */
+function renderVI(){const vi=res.vi,R=model.R;
+  let h='<thead><tr><th>Estado</th><th>V*(s)</th><th>Q(s, Esperar)</th><th>Q(s, Vender) = R(s)</th><th>Acción óptima</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++)h+=`<tr><td>${dot(i)}${NAMES[i]}</td><td><b>${fmt(vi.V[i],1)}</b></td><td>${fmt(vi.Q0[i],1)}</td><td>${fmt(vi.Q1[i],1)}</td><td><span class="pill ${vi.pol[i]?'sell':'wait'}">${vi.pol[i]?'A1 · Vender':'A0 · Esperar'}</span></td></tr>`;
+  $('#viTable').innerHTML=h+'</tbody>';
+  const sells=[0,1,2].filter(i=>vi.pol[i]),waits=[0,1,2].filter(i=>!vi.pol[i]);
+  $('#viExpl').innerHTML=`La iteración convergió en <b>${vi.it}</b> pasos. En cada estado se compara vender ya (R) con esperar una semana (−${cop(model.c)} más el valor futuro descontado). Resultado: <b>vender en ${sells.length?sells.map(i=>NAMES[i]).join(' y '):'ningún nivel'}</b>${waits.length?' y <b>esperar en '+waits.map(i=>NAMES[i]).join(' y ')+'</b>':''}. Esperar solo vale la pena cuando la probabilidad de subir compensa el costo de almacenamiento y el descuento.`;
+  h='<thead><tr><th>Estado</th><th>Política óptima</th><th>Siempre A0 (esperar)</th><th>Siempre A1 (vender ya)</th><th>Ganancia óptima vs vender ya</th><th>Semanas esperadas hasta vender</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++){const g=vi.V[i]-R[i];h+=`<tr><td>${dot(i)}${NAMES[i]}</td><td><b>${fmt(vi.V[i],1)}</b></td><td>${fmt(res.aw[i],1)}</td><td>${fmt(R[i],1)}</td><td>${g>1e-9?'+':''}${fmt(g,1)}${R[i]>0?' ('+(g>1e-9?'+':'')+fmt(100*g/R[i],1)+' %)':''}</td><td>${fmt(res.sellHit[i],2)}</td></tr>`;}
+  $('#polTable').innerHTML=h+'</tbody>';
+  $('#polExpl').innerHTML=`«Siempre esperar» nunca cobra la venta y solo acumula costos: su valor es −c/(1−γ) = ${cop(res.aw[0])}. «Siempre vender» cobra R(s) de inmediato. La política óptima nunca es peor que ninguna de las dos; la diferencia frente a vender ya es el valor de la información de esperar. La última columna es el tiempo medio hasta llegar a un nivel donde la política manda vender.`;
+  h='<thead><tr><th>k</th>'+NAMES.map((x,j)=>`<th>${dot(j)}V<sub>k</sub>(${SH[j]})</th>`).join('')+'</tr></thead><tbody>';
+  vi.hist.forEach((v,k)=>{h+=`<tr><td>${k}</td>${v.map(x=>`<td>${fmt(x,1)}</td>`).join('')}</tr>`;});
+  h+=`<tr class="hl"><td>${vi.it} (final)</td>${vi.V.map(x=>`<td>${fmt(x,1)}</td>`).join('')}</tr>`;
+  $('#iterTable').innerHTML=h+'</tbody>';}
+
+/* ---------- Monte Carlo ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const mc={timer:null,t:0,T:0,N:0,traj:[],rng:null,s0:0,G:[],done:[],soldT:[],visits:[0,0,0],P:null,R:null,c:0,g:0,pol:null,V:null,started:false};
+function sampleNext(s){const u=mc.rng(),row=mc.P[s];let acc=0;for(let k=0;k<3;k++){acc+=row[k];if(u<acc)return k;}return 2;}
+function mcInit(){mcStop();
+  mc.N=Math.min(5000,Math.max(10,parseInt($('#mcN').value)||500));mc.T=Math.min(52,Math.max(1,parseInt($('#mcT').value)||24));
+  $('#mcN').value=mc.N;$('#mcT').value=mc.T;
+  mc.s0=+$('#mcS').value;mc.rng=mulberry32(parseInt($('#mcSeed').value)||0);
+  mc.P=model.P.map(r=>r.slice());mc.R=model.R.slice();mc.c=model.c;mc.g=model.g;mc.pol=res.vi.pol.slice();mc.V=res.vi.V.slice();
+  mc.traj=[];mc.G=[];mc.done=[];mc.soldT=[];mc.visits=[0,0,0];mc.t=0;
+  for(let i=0;i<mc.N;i++){mc.traj.push([mc.s0]);mc.G.push(0);mc.done.push(false);mc.soldT.push(-1);}
+  processPolicy(0);mc.started=true;}
+function processPolicy(t){const g=Math.pow(mc.g,t);
+  for(let i=0;i<mc.N;i++){if(mc.done[i])continue;const s=mc.traj[i][t];
+    if(mc.pol[s]===1){mc.G[i]+=g*mc.R[s];mc.done[i]=true;mc.soldT[i]=t;}
+    else if(t===mc.T){mc.G[i]+=g*mc.V[s];}
+    else mc.G[i]+=g*(-mc.c);}}
+function mcStep(){if(mc.t>=mc.T)return false;
+  for(let i=0;i<mc.N;i++){const s=sampleNext(mc.traj[i][mc.t]);mc.traj[i].push(s);mc.visits[s]++;}
+  mc.t++;processPolicy(mc.t);return true;}
+function mcStop(){if(mc.timer){clearTimeout(mc.timer);mc.timer=null;}}
+function mcLoop(){if(!mcStep()){mcStop();mcDraw();return;}mcDraw();
+  if(mc.t<mc.T)mc.timer=setTimeout(mcLoop,1000/(+$('#mcSpeed').value));else mcStop();}
+function mcReset(){mcStop();mc.started=false;mcInit();mcDraw();}
+function mcDraw(){
+  // trayectorias
+  {const cv=$('#mcTraj');const {ctx,w,h}=prep(cv);const L=56,Rm=10,T=8,B=28,pw=w-L-Rm,ph=h-T-B,band=ph/3;
+    const X=t=>L+pw*t/Math.max(1,mc.T);
+    ctx.font='12px '+cssVar('--sans');
+    for(let s=0;s<3;s++){const y0=T+(2-s)*band;ctx.fillStyle=stColor(s);ctx.globalAlpha=.08;ctx.fillRect(L,y0,pw,band);ctx.globalAlpha=1;ctx.fillStyle=stColor(s);ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(NAMES[s],L-8,y0+band/2);}
+    ctx.fillStyle=cssVar('--muted');ctx.textAlign='center';ctx.textBaseline='top';const st=Math.max(1,Math.ceil(mc.T/12));
+    for(let t=0;t<=mc.T;t+=st)ctx.fillText(t,X(t),h-B+6);
+    const show=Math.min(40,mc.N);
+    for(let i=0;i<show;i++){const tr=mc.traj[i];const jit=((i*37)%41/41-0.5)*band*0.7;
+      const Y=s=>T+(2-s)*band+band/2+jit;
+      ctx.strokeStyle=cssVar('--ink');ctx.globalAlpha=.28;ctx.lineWidth=1.2;ctx.beginPath();
+      tr.forEach((s,t)=>{t?ctx.lineTo(X(t),Y(s)):ctx.moveTo(X(t),Y(s));});ctx.stroke();ctx.globalAlpha=1;
+      const last=tr[tr.length-1];ctx.fillStyle=stColor(last);ctx.beginPath();ctx.arc(X(tr.length-1),Y(last),2.6,0,7);ctx.fill();
+      if(mc.soldT[i]>=0&&mc.soldT[i]<=mc.t){const ts=mc.soldT[i];ctx.strokeStyle=stColor(3);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(X(ts),Y(tr[ts]),4.5,0,7);ctx.stroke();}}
+    ctx.strokeStyle=cssVar('--accent');ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(X(mc.t),T);ctx.lineTo(X(mc.t),T+ph);ctx.stroke();ctx.setLineDash([]);}
+  // barras
+  const cnt=[0,0,0];mc.traj.forEach(tr=>cnt[tr[mc.t]]++);const sim=cnt.map(c=>c/mc.N);const theo=distAt(mc.s0,mc.t,mc.P);
+  {const cv=$('#mcBars');const {ctx,w,h}=prep(cv);const L=44,Rm=10,T=12,B=30,pw=w-L-Rm,ph=h-T-B;const Y=y=>T+ph*(1-y);
+    ctx.font='12px '+cssVar('--sans');
+    for(let k=0;k<=4;k++){const y=k/4;ctx.strokeStyle=cssVar('--grid');ctx.beginPath();ctx.moveTo(L,Y(y));ctx.lineTo(w-Rm,Y(y));ctx.stroke();ctx.fillStyle=cssVar('--muted');ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(y*100+' %',L-6,Y(y));}
+    const gw=pw/3,bw=Math.min(46,gw*0.32);
+    for(let s=0;s<3;s++){const gx=L+gw*s+gw/2;const c=stColor(s);
+      ctx.fillStyle=c;ctx.fillRect(gx-bw-3,Y(sim[s]),bw,Y(0)-Y(sim[s]));
+      ctx.strokeStyle=c;ctx.lineWidth=2;ctx.fillStyle=cssVar('--paper');ctx.fillRect(gx+3,Y(theo[s]),bw,Y(0)-Y(theo[s]));ctx.strokeRect(gx+3,Y(theo[s]),bw,Y(0)-Y(theo[s]));ctx.lineWidth=1;
+      ctx.fillStyle=cssVar('--ink');ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText(fmt(sim[s]*100,0)+'%',gx-bw/2-3,Y(sim[s])-3);ctx.fillText(fmt(theo[s]*100,0)+'%',gx+bw/2+3,Y(theo[s])-3);
+      ctx.textBaseline='top';ctx.fillStyle=c;ctx.fillText(NAMES[s],gx,h-B+7);}}
+  // tabla
+  const totV=mc.visits.reduce((a,b)=>a+b,0);
+  let h=`<thead><tr><th>Estado</th><th>Simulada en semana ${mc.t}</th><th>Teórica π·P<sup>${mc.t}</sup></th><th>Diferencia</th><th>Visitas semanas 1–${mc.t}</th><th>Estacionaria π</th></tr></thead><tbody>`;
+  for(let s=0;s<3;s++)h+=`<tr><td>${dot(s)}${NAMES[s]}</td><td>${pct(sim[s])}</td><td>${pct(theo[s])}</td><td>${fmt((sim[s]-theo[s])*100,1)} pp</td><td>${totV?pct(mc.visits[s]/totV):'—'}</td><td>${pct(res.pi[s])}</td></tr>`;
+  $('#mcTable').innerHTML=h+'</tbody>';
+  $('#mcStatus').textContent=`Semana ${mc.t} de ${mc.T}`+(mc.timer?' · simulando…':mc.t>=mc.T?' · terminado':'');
+  // política
+  const n=mc.N,mean=mc.G.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(mc.G.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,n-1)),se=sd/Math.sqrt(n);
+  const sold=mc.soldT.filter(x=>x>=0&&x<=mc.t),avgT=sold.length?sold.reduce((a,b)=>a+b,0)/sold.length:NaN;
+  const fin=mc.t>=mc.T;
+  $('#mcKpis').innerHTML=`<div class="kpi"><span>Vendidas con la política óptima</span><strong>${pct(sold.length/n,1)}</strong></div>
+   <div class="kpi"><span>Semana media de venta</span><strong>${isFinite(avgT)?fmt(avgT,2):'—'}</strong></div>
+   <div class="kpi"><span>Ganancia descontada simulada</span><strong>${fin?fmt(mean,1):'…'}</strong></div>
+   <div class="kpi"><span>V*(${NAMES[mc.s0]}) teórico</span><strong>${fmt(mc.V[mc.s0],1)}</strong></div>`;
+  const maxd=Math.max(...sim.map((x,i)=>Math.abs(x-theo[i])));const tip=Math.sqrt(0.25/n);
+  $('#mcExpl').innerHTML=`Con ${n} trayectorias, en la semana ${mc.t} la mayor diferencia entre la frecuencia simulada y la probabilidad teórica es de ${fmt(maxd*100,1)} puntos; el error de muestreo típico es del orden de √(p(1−p)/N) ≤ ${fmt(tip*100,1)} puntos, así que ${maxd<=3*tip?'la simulación concuerda con la teoría':'la diferencia es algo grande: prueba con más trayectorias'}. Los círculos marrones señalan dónde la política óptima vendería. ${fin?`La ganancia descontada promedio de las trayectorias (${cop(mean)} ± ${fmt(1.96*se,1)} con 95 % de confianza) debe acercarse a V*(${NAMES[mc.s0]}) = ${cop(mc.V[mc.s0])}; si una trayectoria no vendió antes de la semana ${mc.T}, se completa con V* del estado final.`:'Al terminar se compara la ganancia simulada con V*.'}`;}
+
+/* ---------- lectura de .xlsx sin librerías (ZIP + XML) ---------- */
+async function unzip(buf){const dv=new DataView(buf),dec=new TextDecoder();let e=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65557);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break;}}
+  if(e<0)throw new Error('no parece un archivo .xlsx válido');
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const files={};
+  for(let k=0;k<n;k++){if(dv.getUint32(p,true)!==0x02014b50)break;
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+    files[dec.decode(new Uint8Array(buf,p+46,nl))]={method,csize,off};p+=46+nl+el+cl;}
+  return {names:Object.keys(files),async read(name){const f=files[name];if(!f)return null;
+    const start=f.off+30+dv.getUint16(f.off+26,true)+dv.getUint16(f.off+28,true);const data=new Uint8Array(buf,start,f.csize);
+    if(f.method===0)return dec.decode(data);
+    if(f.method===8){if(typeof DecompressionStream==='undefined')throw new Error('este navegador no puede descomprimir .xlsx; usa una versión reciente de Chrome, Edge, Firefox o Safari');
+      return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();}
+    throw new Error('método de compresión no soportado');}};}
+function weekFrom(title,fname){
+  let m=title&&normTxt(title).match(/(\d{1,2})(?:\s+de\s+([a-z]+))?(?:\s+de\s+(\d{4}))?\s+al\s+(\d{1,2})\s+de\s+([a-z]+)\s+(?:de|del)\s+(\d{4})/);
+  if(m&&MESL[m[5]]&&(!m[2]||MESL[m[2]])){const em=MESL[m[5]],ey=+m[6],sm=m[2]?MESL[m[2]]:em,sy=m[3]?+m[3]:(sm>em?ey-1:ey);
+    return {key:`${sy}-${pad(sm)}-${pad(+m[1])}`,end:`${ey}-${pad(em)}-${pad(+m[4])}`};}
+  m=normTxt(fname).match(/(\d{1,2})([a-z]{3})(\d{1,2})([a-z]{3})-(\d{4})/);
+  if(m&&MESC[m[2]]&&MESC[m[4]]){const sm=MESC[m[2]],em=MESC[m[4]],ey=+m[5];return {key:`${sm>em?ey-1:ey}-${pad(sm)}-${pad(+m[1])}`,end:`${ey}-${pad(em)}-${pad(+m[3])}`};}
+  return null;}
+async function parseSipsa(file){
+  if(/\.xls$/i.test(file.name))throw new Error('formato .xls antiguo: ábrelo en Excel y guárdalo como .xlsx');
+  const z=await unzip(await file.arrayBuffer());const xp=new DOMParser();
+  let ss=[];const sst=await z.read('xl/sharedStrings.xml');
+  if(sst){const d=xp.parseFromString(sst,'application/xml');ss=[...d.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''));}
+  const sheets=z.names.filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort((a,b)=>parseInt(a.match(/\d+/))-parseInt(b.match(/\d+/)));
+  if(!sheets.length)throw new Error('el archivo no tiene hojas de cálculo');
+  let title=null,hit=null;
+  for(const sn of sheets){const d=xp.parseFromString(await z.read(sn),'application/xml');
+    for(const row of d.getElementsByTagName('row')){const vals=[];
+      for(const c of row.getElementsByTagName('c')){const t=c.getAttribute('t');let v;
+        if(t==='s'){const x=c.getElementsByTagName('v')[0];v=x?ss[+x.textContent]:'';}
+        else if(t==='inlineStr'){v=[...c.getElementsByTagName('t')].map(e=>e.textContent).join('');}
+        else{const x=c.getElementsByTagName('v')[0];v=x?x.textContent:'';if(t!=='str'&&t!=='e'&&v!==''&&isFinite(+v))v=+v;}
+        vals.push(v);}
+      if(!title){const tt=vals.find(v=>typeof v==='string'&&/boletin semanal/.test(normTxt(v)));if(tt)title=tt;}
+      if(!hit){const i=vals.findIndex(v=>typeof v==='string'&&normTxt(v)==='papa capira');
+        if(i>=0&&normTxt(vals[i+1]).includes('central mayorista de antioquia')){const nums=vals.slice(i+2).filter(v=>typeof v==='number');
+          if(nums.length>=3)hit={min:nums[0],max:nums[1],medio:nums[2]};}}}
+    if(hit&&title)break;}
+  if(!hit)throw new Error('no se encontró la fila de papa capira en la Central Mayorista de Antioquia');
+  if(!(hit.medio>0&&hit.medio<100000))throw new Error('el precio medio leído no es válido');
+  const wk=weekFrom(title,file.name);if(!wk)throw new Error('no se pudo identificar la semana del boletín (ni en el título ni en el nombre del archivo)');
+  return {key:wk.key,end:wk.end,medio:hit.medio,min:hit.min,max:hit.max,archivo:file.name.slice(0,120)};}
+
+/* ---------- almacenamiento persistente ---------- */
+const LSK='papaCapiraSIPSA.v1';
+const store={mode:'memoria',db:null,
+  loadLocal(){try{const j=JSON.parse(localStorage.getItem(LSK)||'null');if(j){uploaded=j.weeks||{};learnLog=j.log||[];}this.mode='navegador';}catch(e){this.mode='memoria';}},
+  saveLocal(){if(this.db)return;try{localStorage.setItem(LSK,JSON.stringify({weeks:uploaded,log:learnLog}));this.mode='navegador';}catch(e){this.mode='memoria';}},
+  async connect(){try{if(!window.claude||typeof window.claude.use!=='function')return;const db=await window.claude.use('db');if(!db)return;
+      this.db=db;this.mode='compartido';badge();
+      db.collection('semanas').onSnapshot(snap=>{const u={};snap.docs.forEach(d=>{const x=d.data();if(x&&x.key)u[d.id]={...x};});uploaded=u;applyKnowledge();},err=>{this.db=null;this.loadLocal();badge();});
+      db.collection('aprendizaje').orderBy('fecha','desc').limit(100).onSnapshot(snap=>{learnLog=snap.docs.map(d=>({...d.data()}));renderLearn();},()=>{});
+    }catch(e){}},
+  async putWeek(w){if(this.db){await this.db.collection('semanas').doc(w.key).set(w);}else this.saveLocal();},
+  async addLog(e){if(this.db){await this.db.collection('aprendizaje').doc(e.id).set(e);}else{learnLog.unshift(e);this.saveLocal();}},
+  async clear(){if(this.db){for(const k of Object.keys(uploaded)){await this.db.collection('semanas').doc(k).delete();}}
+    uploaded={};this.saveLocal();}};
+function badge(){if(daneInfo){$('#storeBadge').textContent=`datos DANE automáticos · ${daneInfo.n} semanas · ${daneInfo.fecha}`;return;}$('#storeBadge').textContent=store.mode==='compartido'?'guardado: en el artefacto (persistente)':store.mode==='navegador'?'guardado: en este navegador':'guardado: solo esta sesión';}
+
+let busy=false;
+async function handleFiles(list){const files=[...list];if(!files.length)return;const log=$('#fileLog');if(log.querySelector('.muted:only-child'))log.innerHTML='';
+  if(busy){const li=document.createElement('li');li.innerHTML='<span class="err">Espera</span> · aún se están procesando los archivos anteriores.';log.prepend(li);return;}
+  let nuevas=0,act=0,ok=[];
+  busy=true;$('#fileIn').disabled=true;try{
+  for(const f of files){const li=document.createElement('li');li.textContent=`${f.name}: leyendo…`;log.prepend(li);
+    try{const w=await parseSipsa(f);const prev=dataset().find(x=>x.key===w.key);
+      w.cargado=new Date().toISOString();uploaded[w.key]=w;
+      try{await store.putWeek(w);}catch(e){li.dataset.warn='1';}
+      if(prev&&prev.medio===w.medio){act++;li.innerHTML=`<span class="ok">Ya registrada</span> · ${weekLabel(w.key,w.end)}: precio medio ${cop(w.medio,0)}, sin cambios <span class="muted">· ${f.name}</span>`;}
+      else if(prev){act++;li.innerHTML=`<span class="upd">Actualizada</span> · ${weekLabel(w.key,w.end)}: precio medio ${cop(w.medio,0)} (antes ${cop(prev.medio,0)}) <span class="muted">· ${f.name}</span>`;}
+      else{nuevas++;li.innerHTML=`<span class="ok">Nueva semana</span> · ${weekLabel(w.key,w.end)}: precio medio ${cop(w.medio,0)} (mín. ${fmt(w.min,0)}, máx. ${fmt(w.max,0)}) <span class="muted">· ${f.name}</span>`;}
+      if(li.dataset.warn)li.innerHTML+=' <span class="err">· no se pudo guardar de forma permanente (solo esta sesión)</span>';
+      ok.push(f.name);}
+    catch(e){li.innerHTML=`<span class="err">Error</span> · ${f.name}: ${e.message}`;}}
+  if(ok.length)applyKnowledge();}finally{busy=false;$('#fileIn').disabled=false;}
+  if(!ok.length)return;
+  const k=KN,vi=res.vi;const e={id:String(Date.now()),fecha:new Date().toISOString(),archivos:ok.length,nuevas,actualizadas:act,semanas:k.n,
+    pi:res.pi.map(x=>Math.round(x*1000)/1000),politica:[0,1,2].filter(i=>vi.pol[i]).map(i=>NAMES[i]).join(', ')||'ninguno',V:vi.V.map(x=>Math.round(x*10)/10),limites:[Math.round(k.lo*100)/100,Math.round(k.hi*100)/100]};
+  try{await store.addLog(e);}catch(err){learnLog.unshift(e);}
+  if(store.db)learnLog=[e,...learnLog.filter(x=>x.id!==e.id)];
+  renderLearn();badge();}
+function renderLearn(){let h='<thead><tr><th>Fecha de carga</th><th>Archivos</th><th>Semanas nuevas</th><th>Total semanas</th><th>Límites B/M/A</th><th>π (B, M, A)</th><th>Vender en</th><th>V* (B, M, A)</th></tr></thead><tbody>';
+  if(!learnLog.length)h+='<tr><td colspan="8" class="muted">Aún no hay cargas. El modelo usa las 20 semanas del ejercicio.</td></tr>';
+  learnLog.slice(0,100).forEach(e=>{const d=new Date(e.fecha);h+=`<tr><td>${isNaN(d)?'—':d.toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'})}</td><td>${e.archivos}</td><td>${e.nuevas}${e.actualizadas?` · ${e.actualizadas} ya existentes`:''}</td><td>${e.semanas}</td><td>${(e.limites||[]).map(x=>fmt(x,0)).join(' / ')}</td><td>${(e.pi||[]).map(x=>fmt(x,2)).join(' · ')}</td><td>${e.politica}</td><td>${(e.V||[]).map(x=>fmt(x,0)).join(' · ')}</td></tr>`;});
+  $('#learnTable').innerHTML=h+'</tbody>';}
+
+/* ---------- sensibilidad ---------- */
+function policyAt(c){return valueIter(model.P,model.R,c,model.g);}
+function thresholds(){ // costo mínimo desde el que conviene vender en cada estado (búsqueda + bisección)
+  const th=[null,null,null];
+  for(let s=0;s<3;s++){if(policyAt(0).pol[s]===1){th[s]=0;continue;}
+    let lo=0,hi=null;for(let c=2;c<=2000;c+=2){if(policyAt(c).pol[s]===1){hi=c;break;}lo=c;}
+    if(hi===null)continue;for(let k=0;k<30;k++){const m=(lo+hi)/2;if(policyAt(m).pol[s]===1)hi=m;else lo=m;}th[s]=hi;}
+  return th;}
+function renderSens(){const c=+$('#sensC').value;$('#sensCL').textContent=cop(c,0);
+  const vi=policyAt(c);if(!res.th)res.th=thresholds();const th=res.th;
+  let h='<thead><tr><th>Estado</th><th>R(s)</th><th>Q(s, Esperar)</th><th>V*(s)</th><th>Acción</th><th>Vender conviene desde</th></tr></thead><tbody>';
+  for(let i=0;i<3;i++)h+=`<tr><td>${dot(i)}${NAMES[i]}</td><td>${fmt(model.R[i],1)}</td><td>${fmt(vi.Q0[i],1)}</td><td><b>${fmt(vi.V[i],1)}</b></td><td><span class="pill ${vi.pol[i]?'sell':'wait'}">${vi.pol[i]?'Vender':'Esperar'}</span></td><td>${th[i]===null?'> 2.000 $/kg':th[i]===0?'siempre':'c ≥ '+cop(th[i])}</td></tr>`;
+  $('#sensTable').innerHTML=h+'</tbody>';
+  const order=[0,1,2].filter(i=>th[i]!==null&&th[i]>0).sort((a,b)=>th[a]-th[b]);
+  const all=Math.max(...th.map(x=>x===null?Infinity:x));
+  $('#sensKpis').innerHTML=order.filter(i=>th[i]<all-1e-9).map(i=>`<div class="kpi"><span>Vender también en ${NAMES[i]} desde</span><strong>${fmt(th[i],1)}</strong></div>`).join('')+`<div class="kpi"><span>Vender siempre desde</span><strong>${isFinite(all)?fmt(all,1):'—'}</strong></div>`;
+  // gráfica Q(Esperar) − R vs costo
+  const {ctx,w,h:hh}=prep($('#sensChart'));const L=54,Rm=12,T=12,B=36,pw=w-L-Rm,ph=hh-T-B,cmax=150;
+  const pts=[];for(let x=0;x<=cmax;x+=2.5){const v=policyAt(x);pts.push([x,v.Q0.map((q,i)=>q-model.R[i])]);}
+  let ymin=Math.min(0,...pts.flatMap(p=>p[1])),ymax=Math.max(0,...pts.flatMap(p=>p[1]));const pad=(ymax-ymin)*.08||1;ymin-=pad;ymax+=pad;
+  const X=x=>L+pw*x/cmax,Y=y=>T+ph*(1-(y-ymin)/(ymax-ymin));
+  ctx.font='12px '+cssVar('--sans');
+  const step=Math.pow(10,Math.floor(Math.log10((ymax-ymin)/4)));const st2=(ymax-ymin)/step>8?step*2:step;
+  for(let y=Math.ceil(ymin/st2)*st2;y<=ymax;y+=st2){ctx.strokeStyle=cssVar('--grid');ctx.beginPath();ctx.moveTo(L,Y(y));ctx.lineTo(w-Rm,Y(y));ctx.stroke();ctx.fillStyle=cssVar('--muted');ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(fmt(y,0),L-6,Y(y));}
+  ctx.strokeStyle=cssVar('--ink');ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(L,Y(0));ctx.lineTo(w-Rm,Y(0));ctx.stroke();ctx.lineWidth=1;
+  ctx.fillStyle=cssVar('--muted');ctx.textAlign='center';ctx.textBaseline='top';for(let x=0;x<=cmax;x+=25)ctx.fillText(x,X(x),hh-B+6);ctx.fillText('costo de esperar ($/kg por semana)',L+pw/2,hh-16);
+  for(let i=0;i<3;i++){ctx.strokeStyle=stColor(i);ctx.lineWidth=2.4;ctx.beginPath();pts.forEach((p,k)=>{k?ctx.lineTo(X(p[0]),Y(p[1][i])):ctx.moveTo(X(p[0]),Y(p[1][i]));});ctx.stroke();}
+  ctx.lineWidth=1;ctx.strokeStyle=cssVar('--accent');ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(X(c),T);ctx.lineTo(X(c),T+ph);ctx.stroke();ctx.setLineDash([]);
+  const sells=[0,1,2].filter(i=>vi.pol[i]);
+  $('#sensExpl').innerHTML=`Con un costo de <b>${cop(c,0)}</b> por semana la política óptima es vender en <b>${sells.length?sells.map(i=>NAMES[i]).join(', '):'ningún nivel'}</b>. Cada curva es la ventaja de esperar, Q(s, Esperar) − R(s): mientras está por encima de 0 conviene guardar la carga. ${order.length?`La política cambia a vender también en ${NAMES[order[0]]} desde ≈ ${cop(th[order[0]])} (${fmt(Math.ceil(th[order[0]]),0)} en pesos enteros)${isFinite(all)?` y a vender siempre desde ≈ ${cop(all)} (${fmt(Math.ceil(all),0)} en pesos enteros)`:''}.`:''} Desde Bajo se tarda mucho en llegar a Alto, por eso es el primer estado donde deja de convenir esperar.`;}
+function qCost(){const th=res.th||thresholds();const order=[0,1,2].filter(i=>th[i]!==null&&th[i]>0).sort((a,b)=>th[a]-th[b]);
+  if(!order.length)return show('Costo límite de almacenamiento','—','Con los datos actuales la política no cambia con el costo de esperar en el rango analizado.','');
+  const all=Math.max(...th.map(x=>x===null?Infinity:x));
+  show('¿Hasta qué costo conviene seguir esperando?',`${cop(th[order[0]])}`,
+    `Mientras guardar la carga cueste menos de ≈ ${cop(th[order[0]])} por semana, se mantiene la política actual (esperar en ${order.map(i=>NAMES[i]).join(' y ')}). Por encima de ese valor conviene vender también en ${NAMES[order[0]]}${isFinite(all)&&order.length>1?`, y desde ≈ ${cop(all)} conviene vender siempre`:''}. El costo actual del modelo es ${cop(model.c)}, ${model.c<th[order[0]]?'por debajo del límite, así que esperar sigue siendo rentable':'por encima del límite'}. Como la papa es perecedera, conviene estimar la merma real antes de decidir.`,
+    order.map(i=>`${NAMES[i]}: vender desde c ≈ ${fmt(th[i],2)} $/kg`).join(' · '));}
+
+/* ---------- preguntas ---------- */
+function show(title,big,expl,calc){$('#answer').innerHTML=`<h4>${title}</h4><div class="big">${big}</div><p class="explica">${expl}</p>${calc?`<div class="calc">${calc}</div>`:''}`;}
+function eqText(j){const P=model.P,idx=[0,1,2].filter(k=>k!==j);
+  return 'Sistema: '+idx.map(k=>`m<sub>${SH[k]}</sub> = 1 + `+idx.map(l=>`${fmt(P[k][l],2)}·m<sub>${SH[l]}</sub>`).join(' + ')).join(' ; ')+` → `+idx.map(k=>`m<sub>${SH[k]}</sub> = ${fmt(res.F[k][j],3)}`).join(', ');}
+function qFirst(i,j){const m=res.F[i][j];
+  if(i===j)return show(`Tiempo de retorno a ${NAMES[j]}`,`${fmt(m,2)} semanas`,`Si hoy el precio está ${NAMES[i]} y cambia, en promedio vuelve a ${NAMES[j]} en ${fmt(m,2)} semanas contando desde hoy. Es igual a 1/π = 1/${fmt(res.pi[j],3)}.`,`m<sub>${SH[j]}${SH[j]}</sub> = 1 + Σ<sub>k≠${SH[j]}</sub> p<sub>${SH[j]}k</sub>·m<sub>k${SH[j]}</sub>`);
+  show(`De ${NAMES[i]} a ${NAMES[j]}: tiempo esperado de primer paso`,`${fmt(m,2)} semanas`,
+    m===Infinity?`Desde ${NAMES[i]} no se garantiza llegar a ${NAMES[j]} con la matriz actual, así que el tiempo esperado es infinito.`:`Si hoy el precio es ${NAMES[i]}, en promedio pasarán unas ${fmt(m,2)} semanas antes de ver el precio ${NAMES[j]} por primera vez (equivale a ${fmt(m*7,0)} días). Es un promedio: algunas veces llega en una semana y otras tarda mucho más.`,eqText(j));}
+function qProb(i,j,n){const v=distAt(i,n,model.P);
+  show(`Probabilidad de ${NAMES[j]} en ${n} semana${n>1?'s':''} partiendo de ${NAMES[i]}`,pct(v[j],2),
+    `Se multiplica el vector inicial (1 en ${NAMES[i]}) por P ${n} ${n>1?'veces':'vez'}. Hay ${pct(v[j],1)} de probabilidad de que dentro de ${n} semana${n>1?'s':''} el precio esté ${NAMES[j]}; a largo plazo esa probabilidad tiende a ${pct(res.pi[j],1)}.`,
+    `π·P<sup>${n}</sup> = [${v.map((x,k)=>SH[k]+': '+fmt(x,4)).join(' , ')}]`);}
+function qProbAll(j,n){const vs=[0,1,2].map(i=>distAt(i,n,model.P)[j]);
+  show(`Probabilidad de ${NAMES[j]} en ${n} semana${n>1?'s':''}`,vs.map((x,i)=>SH[i]+' '+pct(x,0)).join(' · '),
+    `No indicaste el precio de hoy, así que se muestra desde cada nivel: partiendo de Bajo ${pct(vs[0])}, de Medio ${pct(vs[1])} y de Alto ${pct(vs[2])}. Es la columna ${NAMES[j]} de P<sup>${n}</sup>.`,'');}
+function qPolicy(){const vi=res.vi,R=model.R;const sells=[0,1,2].filter(i=>vi.pol[i]),waits=[0,1,2].filter(i=>!vi.pol[i]);
+  const gains=[0,1,2].map(i=>vi.V[i]-R[i]);
+  show('Política óptima de venta',`Vender en ${sells.length?sells.map(i=>NAMES[i]).join(' y '):'ningún nivel'}`,
+    `La iteración de valor indica <b>vender cuando el precio está ${sells.map(i=>NAMES[i]).join(' o ')||'—'}</b>${waits.length?' y <b>esperar si está '+waits.map(i=>NAMES[i]).join(' o ')+'</b>':''}. Frente a vender ya, seguir esta regla gana en valor esperado: ${[0,1,2].map(i=>`${NAMES[i]} +${cop(gains[i])} (${fmt(100*gains[i]/R[i],1)} %)`).join('; ')}. ${waits.length?`Por ejemplo, con precio ${NAMES[waits[0]]} esperarías en promedio ${fmt(res.sellHit[waits[0]],2)} semanas hasta vender.`:''}`,
+    [0,1,2].map(i=>`${SH[i]}: Q(Esperar) = ${fmt(vi.Q0[i],1)} vs Q(Vender) = ${fmt(vi.Q1[i],1)} → V* = ${fmt(vi.V[i],1)} $/kg`).join('<br>'));}
+function qAction(s,a){const vi=res.vi,R=model.R,best=vi.pol[s];const q=[vi.Q0[s],vi.Q1[s]];
+  if(a===null||a===undefined){
+    return show(`¿Qué hacer con precio ${NAMES[s]}?`,best?'Vender (A1)':'Esperar (A0)',
+      best?`Con precio ${NAMES[s]} vender paga ${cop(R[s])} y esperar vale ${cop(q[0])}; conviene vender porque esperar no compensa el costo de ${cop(model.c)} por semana ni el descuento.`
+          :`Con precio ${NAMES[s]} vender ya paga ${cop(R[s])}, pero esperar vale ${cop(q[0])} en valor esperado (+${cop(q[0]-R[s])}). Conviene guardar la carga y esperar un mejor precio.`,
+      `Q(${SH[s]}, Esperar) = −${fmt(model.c,1)} + ${fmt(model.g,3)}·Σ P(${SH[s]},s′)·V*(s′) = ${fmt(q[0],1)} $/kg`);}
+  const d=q[a]-vi.V[s];
+  show(`${a?'Vender':'Esperar'} con precio ${NAMES[s]}`,cop(q[a]),
+    `Si eliges <b>${a?'vender':'esperar'}</b> con precio ${NAMES[s]} (y luego sigues la política óptima) el valor esperado es ${cop(q[a])}. ${Math.abs(d)<1e-9?'Es la decisión óptima.':`La acción óptima es ${best?'vender':'esperar'} y vale ${cop(vi.V[s])}, así que pierdes ${cop(-d)} (${fmt(-100*d/vi.V[s],1)} %).`}`,
+    `Q(${SH[s]}, Esperar) = ${fmt(q[0],1)} · Q(${SH[s]}, Vender) = ${fmt(q[1],1)} $/kg`);}
+function qStationary(s){const pi=res.pi;
+  show('Distribución a largo plazo',s==null?pi.map((x,i)=>SH[i]+' '+pct(x,1)).join(' · '):pct(pi[s],2),
+    `Después de muchas semanas el precio de hoy deja de importar: el precio está Bajo ${pct(pi[0])}, Medio ${pct(pi[1])} y Alto ${pct(pi[2])} del tiempo. Se obtiene resolviendo π = π·P con la suma igual a 1.`,'');}
+function qSojourn(s){const v=res.soj[s];
+  show(`Permanencia en ${NAMES[s]}`,`${fmt(v,2)} semanas`,`Una vez el precio está ${NAMES[s]}, se queda allí cada semana con probabilidad ${fmt(model.P[s][s],2)}. La duración de una racha sigue una distribución geométrica con media 1/(1 − ${fmt(model.P[s][s],2)}) = ${fmt(v,2)} semanas.`,'');}
+function qState(s){const vi=res.vi;
+  show(`Resumen del precio ${NAMES[s]}`,vi.pol[s]?'Vender':'Esperar',`A largo plazo el precio está ${NAMES[s]} ${pct(res.pi[s])} del tiempo; una racha dura ${fmt(res.soj[s],2)} semanas en promedio. La política óptima en este nivel es <b>${vi.pol[s]?'vender':'esperar'}</b>, con valor V* = ${cop(vi.V[s])}.`,'');}
+function help(){show('No identifiqué la pregunta','¿Puedes reformularla?','Incluye un estado (bajo, medio o alto) y, si aplica, un número de semanas, una acción o la palabra costo. Ejemplos: «probabilidad de alto en 3 semanas desde bajo», «cuántas semanas de medio a alto», «conviene vender en medio», «permanencia en bajo», «distribución estacionaria».','');}
+
+const NUMW={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,quince:15,veinte:20};
+const SMAP={bajo:0,baja:0,medio:1,media:1,alto:2,alta:2};
+function freeAnswer(q){const t=' '+q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[¿?¡!.,;:]/g,' ')+' ';
+  const ms=[...t.matchAll(/\b(bajo|baja|medio|media|alto|alta)\b/g)].map(m=>({s:SMAP[m[1]],i:m.index}));
+  let n=null;const mn=t.match(/\b(\d{1,3})\b/);if(mn)n=parseInt(mn[1]);
+  else{for(const w in NUMW){if(new RegExp('\\b'+w+'\\b').test(t)&&/(seman|mes|paso|periodo)/.test(t)){n=NUMW[w];break;}}}
+  if(/\bmes(es)?\b/.test(t))n=(n||1)*4;if(/semestre/.test(t))n=26;if(/\bano\b/.test(t))n=52;
+  let act=null;if(/vend|a1\b/.test(t))act=1;else if(/esper|guard|almacen|aguant|a0\b/.test(t))act=0;
+  let origin=null,target=null;
+  const om=t.match(/(desde|partiendo de|parto de|empezando (?:en|de|por)|arrancando en|hoy (?:el precio )?(?:es|esta)|si (?:el precio )?(?:es|esta)|estando en|ahora (?:es|esta)|actualmente (?:es|esta)?|de)\s+(?:el |en |un |precio |nivel )*(bajo|baja|medio|media|alto|alta)\b(?=\s+(?:a|hasta|hacia|al)\b)?/);
+  const fromTo=t.match(/de\s+(?:precio |nivel )?(bajo|baja|medio|media|alto|alta)\s+(?:a|hasta|hacia|al)\s+(?:precio |nivel )?(bajo|baja|medio|media|alto|alta)/);
+  const om2=t.match(/(desde|partiendo de|parto de|empezando (?:en|de|por)|arrancando en|hoy (?:el precio )?(?:es|esta)|si (?:hoy )?(?:el precio )?(?:es|esta)|estando en|ahora (?:es|esta))\s+(?:el |en |un |precio |nivel )*(bajo|baja|medio|media|alto|alta)\b/);
+  if(fromTo){origin=SMAP[fromTo[1]];target=SMAP[fromTo[2]];}
+  else if(om2){origin=SMAP[om2[2]];const oi=om2.index+om2[0].length;const other=ms.find(m=>m.i<om2.index||m.i>=oi);target=other?other.s:null;}
+  else if(ms.length>=2){origin=ms[0].s;target=ms[1].s;}
+  const one=ms.length?ms[0].s:null;
+  const has=re=>re.test(t);
+  if(has(/costo|cuesta|umbral|sensibil|merma|almacenamiento/))return qCost();
+  if(has(/estacionari|largo plazo|a la larga|equilibrio|limite/))return qStationary(one);
+  if(has(/permanen|cuanto dura|duracion|dura una|racha|seguid|consecutiv|se mantiene|mantenerse|quedarse|persist/)&&one!=null)return qSojourn(one);
+  if(has(/primer paso|primera vez|cuantas semanas|tiempo esperado|tiempo medio|cuanto tarda|tardar|tarda|demora|cuanto tiempo|hasta ver|hasta que|regres|volver|semanas de\b/)&&!has(/probab/)){
+    if(origin!=null&&target!=null)return qFirst(origin,target);
+    if(one!=null){if(has(/volver|regres|retorn/))return qFirst(one,one);const tg=one;return show(`Semanas hasta ver precio ${NAMES[tg]}`,[0,1,2].filter(i=>i!==tg).map(i=>`${SH[i]}: ${fmt(res.F[i][tg],2)}`).join(' · '),`No indicaste el precio de hoy. Desde ${[0,1,2].filter(i=>i!==tg).map(i=>NAMES[i]+' se tarda en promedio '+fmt(res.F[i][tg],2)+' semanas').join(' y desde ')} en llegar a ${NAMES[tg]}.`,eqText(tg));}}
+  if(has(/probab|prob\b|chance|posibilidad|porcentaje|que tan probable|%/)||(n!=null&&ms.length&&act===null)){
+    const nn=Math.max(1,Math.min(200,n||1));
+    if(origin!=null&&target!=null)return qProb(origin,target,nn);
+    if(one!=null)return qProbAll(one,nn);}
+  if(act!==null||has(/conviene|politica|decisi|accion|que hago|debo|deberia|ganancia|gano|pierdo|valor|cuanto gan/)){
+    const s=origin!=null?origin:one;
+    if(s!=null)return qAction(s,/conviene|debo|deberia|que hago|mejor/.test(t)&&!/si vendo|si espero/.test(t)?null:act);
+    return qPolicy();}
+  if(one!=null)return qState(one);
+  return help();}
+
+/* ---------- eventos ---------- */
+function init(){freq=JSON.parse(JSON.stringify(FREQ_OBS));freq[2][0]+=1;
+  buildFreq();buildMatrix();fillInputs();store.loadLocal();badge();
+  $('#closePair').onchange=applyKnowledge;$('#onlyConsec').onchange=applyKnowledge;
+  $('#fileIn').onchange=e=>{handleFiles(e.target.files).finally(()=>{e.target.value='';});};
+  const dz=$('#drop');['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over');}));
+  ['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over');}));
+  dz.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+  $('#btnClear').onclick=async()=>{if(!Object.keys(uploaded).length)return;if(!confirm('¿Borrar todas las semanas cargadas desde archivos? El modelo volverá a las 20 semanas del ejercicio. El historial de aprendizaje se conserva.'))return;
+    try{await store.clear();}catch(e){uploaded={};}$('#fileLog').innerHTML='<li class="muted">Semanas cargadas borradas.</li>';applyKnowledge();};
+  $('#sensC').oninput=renderSens;
+  $('#sensApply').onclick=()=>{$('#cost').value=$('#sensC').value;onParams();};
+  ['r0','r1','r2','cost','gamma'].forEach(id=>$('#'+id).addEventListener('input',onParams));
+  $('#btnRestore').onclick=()=>{model.c=DEF.c;model.g=DEF.g;$('#closePair').checked=true;$('#onlyConsec').checked=false;fillInputs();$('#sensC').value=22;applyKnowledge();onParams();$('#matStatus').textContent=`Valores restaurados desde los datos (${KN.n} semanas): conteos, matriz y recompensas recalculados; costo 22 $/kg y γ = 0,99.`;};
+  $('#btnNormalize').onclick=()=>{for(let i=0;i<3;i++){const v=[0,1,2].map(j=>Math.max(0,parseFloat($('#p'+i+j).value)||0));const s=v.reduce((a,b)=>a+b,0);
+    for(let j=0;j<3;j++)$('#p'+i+j).value=s>0?+(v[j]/s).toFixed(4):(i===j?1:0);}
+    // ajustar redondeo para que sume exactamente 1
+    for(let i=0;i<3;i++){const v=[0,1,2].map(j=>parseFloat($('#p'+i+j).value));const s=v.reduce((a,b)=>a+b,0);const k=v.indexOf(Math.max(...v));$('#p'+i+k).value=+(v[k]+1-s).toFixed(4);}
+    onMatrix();};
+  $('#diagMode').onchange=renderDiagram;
+  $('#predS').onchange=renderPred;
+  $('#predNr').oninput=()=>{$('#predN').value=$('#predNr').value;renderPred();};
+  $('#predN').oninput=()=>{let v=parseInt($('#predN').value);if(!isFinite(v))return;v=Math.min(24,Math.max(1,v));$('#predNr').value=v;if(String(v)!==$('#predN').value&&$('#predN').value!=='')$('#predN').value=v;renderPred();};
+  $('#mcSpeed').oninput=()=>{$('#mcSpeedL').textContent=$('#mcSpeed').value+' sem/s';};
+  ['#mcS','#mcN','#mcT','#mcSeed'].forEach(id=>$(id).addEventListener('change',mcReset));
+  $('#mcPlay').onclick=()=>{if(mc.t>=mc.T)mcInit();if(!mc.timer)mcLoop();};
+  $('#mcPause').onclick=()=>{mcStop();mcDraw();};
+  $('#mcFinish').onclick=()=>{mcStop();while(mcStep());mcDraw();};
+  $('#mcReset').onclick=mcReset;
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const q=b.dataset.q;
+    lastQ=q==='1'?()=>qFirst(0,2):q==='2'?()=>qProb(1,2,4):q==='3'?()=>qPolicy():()=>qCost();lastQ();});
+  const ask=()=>{const q=$('#freeQ').value.trim();if(!q)return;lastQ=()=>freeAnswer(q);lastQ();};
+  $('#freeBtn').onclick=ask;$('#freeQ').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+  document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{$('#freeQ').value=b.textContent;ask();});
+  let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{renderSerie();renderPred();renderSens();mcDraw();},120);});
+  if(window.matchMedia)window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{renderSerie();renderDiagram();renderPred();renderSens();mcDraw();});
+  applyKnowledge();store.connect();cargarDatosDane();}
+/* datos.json generado por el script programado (solo existe si la página se publica junto a él, p. ej. en GitHub Pages) */
+async function cargarDatosDane(){if(location.protocol==='file:')return;try{const r=await fetch('datos.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+  if(!j||!Array.isArray(j.semanas))return;const d={};j.semanas.forEach(w=>{if(w&&/^\d{4}-\d{2}-\d{2}$/.test(w.key)&&isFinite(+w.medio))d[w.key]={key:w.key,end:w.end,medio:+w.medio,min:+w.min,max:+w.max,archivo:String(w.archivo||'')};});
+  daneData=d;daneInfo={n:Object.keys(d).length,fecha:String(j.actualizado||'')};applyKnowledge();badge();}catch(e){}}
+init();
+})();
+</script>
+</body>
+</html>
