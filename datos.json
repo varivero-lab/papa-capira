@@ -1,0 +1,333 @@
+{
+ "semanas": [
+  {
+   "key": "2025-12-27",
+   "end": "2026-01-02",
+   "min": 1600,
+   "max": 2000,
+   "medio": 1822,
+   "archivo": "anex-SIPSASemanal-27dic202502ene2026.xlsx"
+  },
+  {
+   "key": "2026-01-03",
+   "end": "2026-01-09",
+   "min": 1500,
+   "max": 1900,
+   "medio": 1683,
+   "archivo": "anex-SIPSASemanal-03ene09ene-2026.xlsx"
+  },
+  {
+   "key": "2026-01-10",
+   "end": "2026-01-16",
+   "min": 1500,
+   "max": 1800,
+   "medio": 1665,
+   "archivo": "anex-SIPSASemanal-10ene16ene-2026.xlsx"
+  },
+  {
+   "key": "2026-01-17",
+   "end": "2026-01-23",
+   "min": 1700,
+   "max": 2000,
+   "medio": 1867,
+   "archivo": "anex-SIPSASemanal-17ene23ene-2026.xlsx"
+  },
+  {
+   "key": "2026-01-24",
+   "end": "2026-01-30",
+   "min": 1700,
+   "max": 2200,
+   "medio": 1967,
+   "archivo": "anex-SIPSASemanal-24ene30ene-2026.xlsx"
+  },
+  {
+   "key": "2026-01-31",
+   "end": "2026-02-06",
+   "min": 2000,
+   "max": 2600,
+   "medio": 2296,
+   "archivo": "anex-SIPSASemanal-31ene06feb-2026.xlsx"
+  },
+  {
+   "key": "2026-02-07",
+   "end": "2026-02-13",
+   "min": 1800,
+   "max": 2400,
+   "medio": 2050,
+   "archivo": "anex-SIPSASemanal-07feb13feb-2026.xlsx"
+  },
+  {
+   "key": "2026-02-14",
+   "end": "2026-02-20",
+   "min": 1700,
+   "max": 2200,
+   "medio": 1983,
+   "archivo": "anex-SIPSASemanal-14feb20feb-2026.xlsx"
+  },
+  {
+   "key": "2026-02-21",
+   "end": "2026-02-27",
+   "min": 1900,
+   "max": 2200,
+   "medio": 2000,
+   "archivo": "anex-SIPSASemanal-21feb27feb-2026.xlsx"
+  },
+  {
+   "key": "2026-02-28",
+   "end": "2026-03-06",
+   "min": 2000,
+   "max": 2200,
+   "medio": 2108,
+   "archivo": "anex-SIPSASemanal-28feb6mar-2026.xlsx"
+  },
+  {
+   "key": "2026-03-07",
+   "end": "2026-03-13",
+   "min": 2000,
+   "max": 2400,
+   "medio": 2192,
+   "archivo": "anex-SIPSASemanal-07mar13mar-2026.xlsx"
+  },
+  {
+   "key": "2026-03-14",
+   "end": "2026-03-20",
+   "min": 2100,
+   "max": 2500,
+   "medio": 2333,
+   "archivo": "anex-SIPSASemanal-14mar20mar-2026.xlsx"
+  },
+  {
+   "key": "2026-03-21",
+   "end": "2026-03-27",
+   "min": 2100,
+   "max": 2400,
+   "medio": 2295,
+   "archivo": "anex-SIPSASemanal-21mar27mar-2026.xlsx"
+  },
+  {
+   "key": "2026-03-28",
+   "end": "2026-04-01",
+   "min": 2100,
+   "max": 2400,
+   "medio": 2294,
+   "archivo": "anex-SIPSASemanal-28mar01abr-2026.xlsx"
+  },
+  {
+   "key": "2026-04-04",
+   "end": "2026-04-10",
+   "min": 2600,
+   "max": 3100,
+   "medio": 2942,
+   "archivo": "anex-SIPSASemanal-04abr10abr-2026.xlsx"
+  },
+  {
+   "key": "2026-04-11",
+   "end": "2026-04-17",
+   "min": 2100,
+   "max": 2800,
+   "medio": 2408,
+   "archivo": "anex-SIPSASemanal-11abr17abr-2026.xlsx"
+  },
+  {
+   "key": "2026-04-18",
+   "end": "2026-04-24",
+   "min": 2200,
+   "max": 2500,
+   "medio": 2346,
+   "archivo": "anex-SIPSASemanal-18abr24abr-2026.xlsx"
+  },
+  {
+   "key": "2026-04-25",
+   "end": "2026-04-30",
+   "min": 2000,
+   "max": 2500,
+   "medio": 2248,
+   "archivo": "anex-SIPSASemanal-25abr30abr-2026.xlsx"
+  },
+  {
+   "key": "2026-05-02",
+   "end": "2026-05-08",
+   "min": 2300,
+   "max": 2700,
+   "medio": 2523,
+   "archivo": "anex-SIPSASemanal-02may08may-2026.xlsx"
+  },
+  {
+   "key": "2026-05-09",
+   "end": "2026-05-15",
+   "min": 2300,
+   "max": 2600,
+   "medio": 2446,
+   "archivo": "anex-SIPSASemanal-09may15may-2026.xlsx"
+  },
+  {
+   "key": "2026-05-16",
+   "end": "2026-05-22",
+   "min": 2000,
+   "max": 2600,
+   "medio": 2410,
+   "archivo": "anex-SIPSASemanal-16may22may-2026.xlsx"
+  },
+  {
+   "key": "2026-05-23",
+   "end": "2026-05-29",
+   "min": 2300,
+   "max": 2600,
+   "medio": 2508,
+   "archivo": "anex-SIPSASemanal-23may29may-2026.xlsx"
+  },
+  {
+   "key": "2026-05-30",
+   "end": "2026-06-05",
+   "min": 2400,
+   "max": 3000,
+   "medio": 2727,
+   "archivo": "anex-SIPSASemanal-30may05jun-2026.xlsx"
+  },
+  {
+   "key": "2026-06-06",
+   "end": "2026-06-12",
+   "min": 2500,
+   "max": 3100,
+   "medio": 2915,
+   "archivo": "anex-SIPSASemanal-06jun12jun-2026.xlsx"
+  },
+  {
+   "key": "2026-06-13",
+   "end": "2026-06-19",
+   "min": 2500,
+   "max": 3000,
+   "medio": 2688,
+   "archivo": "anex-SIPSASemanal-13jun19jun-2026.xlsx"
+  },
+  {
+   "key": "2026-06-20",
+   "end": "2026-06-26",
+   "min": 2000,
+   "max": 2800,
+   "medio": 2450,
+   "archivo": "anex-SIPSASemanal-20jun26jun-2026.xlsx"
+  },
+  {
+   "key": "2026-06-27",
+   "end": "2026-07-03",
+   "min": 2000,
+   "max": 2700,
+   "medio": 2405,
+   "archivo": "anex-SIPSASemanal-27jun03jul-2026.xlsx"
+  },
+  {
+   "key": "2026-07-04",
+   "end": "2026-07-10",
+   "min": 2200,
+   "max": 2600,
+   "medio": 2396,
+   "archivo": "anex-SIPSASemanal-04jul10jul-2026.xlsx"
+  },
+  {
+   "key": "2026-07-11",
+   "end": "2026-07-17",
+   "min": 2200,
+   "max": 2500,
+   "medio": 2405,
+   "archivo": "anex-SIPSASemanal-11jul17jul-2026.xlsx"
+  },
+  {
+   "key": "2026-07-18",
+   "end": "2026-07-24",
+   "min": 2000,
+   "max": 2400,
+   "medio": 2245,
+   "archivo": "anex-SIPSASemanal-18jul24jul-2026.xlsx"
+  },
+  {
+   "key": "2026-07-25",
+   "end": "2026-07-31",
+   "min": 2200,
+   "max": 2400,
+   "medio": 2313,
+   "archivo": "anex-SIPSASemanal-25jul31jul-2026.xlsx"
+  },
+  {
+   "key": "2026-08-01",
+   "end": "2026-08-06",
+   "min": 2300,
+   "max": 2700,
+   "medio": 2478,
+   "archivo": "anex-SIPSASemanal-01ago06ago-2026.xlsx"
+  },
+  {
+   "key": "2026-08-08",
+   "end": "2026-08-14",
+   "min": 2300,
+   "max": 2600,
+   "medio": 2398,
+   "archivo": "anex-SIPSASemanal-08ago14ago-2026.xlsx"
+  },
+  {
+   "key": "2026-08-15",
+   "end": "2026-08-21",
+   "min": 2200,
+   "max": 2400,
+   "medio": 2340,
+   "archivo": "anex-SIPSASemanal-15ago21ago-2026.xlsx"
+  },
+  {
+   "key": "2026-08-22",
+   "end": "2026-08-28",
+   "min": 2200,
+   "max": 2600,
+   "medio": 2442,
+   "archivo": "anex-SIPSASemanal-22ago28ago-2026.xlsx"
+  },
+  {
+   "key": "2026-08-29",
+   "end": "2026-09-04",
+   "min": 2300,
+   "max": 2900,
+   "medio": 2608,
+   "archivo": "anex-SIPSASemanal-29ago04sep-2026.xlsx"
+  },
+  {
+   "key": "2026-09-05",
+   "end": "2026-09-11",
+   "min": 2200,
+   "max": 2700,
+   "medio": 2458,
+   "archivo": "anex-SIPSASemanal-05sep11sep-2026.xlsx"
+  },
+  {
+   "key": "2026-09-12",
+   "end": "2026-09-18",
+   "min": 2200,
+   "max": 2800,
+   "medio": 2546,
+   "archivo": "anex-SIPSASemanal-12sep18sep-2026.xlsx"
+  },
+  {
+   "key": "2026-09-19",
+   "end": "2026-09-25",
+   "min": 2400,
+   "max": 2900,
+   "medio": 2642,
+   "archivo": "anex-SIPSASemanal-19sep25sep-2026.xlsx"
+  },
+  {
+   "key": "2026-09-26",
+   "end": "2026-10-02",
+   "min": 2400,
+   "max": 3300,
+   "medio": 2779,
+   "archivo": "anex-SIPSASemanal-26sep2oct-2026.xlsx"
+  },
+  {
+   "key": "2026-10-03",
+   "end": "2026-10-09",
+   "min": 3000,
+   "max": 3600,
+   "medio": 3379,
+   "archivo": "anex-SIPSASemanal-3oct9oct-2026.xlsx"
+  }
+ ],
+ "actualizado": "2026-10-13 13:46 UTC"
+}
