@@ -359,7 +359,15 @@
    "max": 3800,
    "medio": 3598,
    "archivo": "anex-SIPSASemanal-31oct06nov-2026.xlsx"
+  },
+  {
+   "key": "2026-11-07",
+   "end": "2026-11-13",
+   "min": 3000,
+   "max": 3700,
+   "medio": 3431,
+   "archivo": "anex-SIPSASemanal-7nov13nov-2026.xlsx"
   }
  ],
- "actualizado": "2026-11-07 14:33 UTC"
+ "actualizado": "2026-11-14 14:31 UTC"
 }
